@@ -4,6 +4,11 @@ socket.on('connect', () => {
   console.log('connected to server');
 });
 
+socket.on('map', (map) => {
+  window.map = map;
+  main(map);
+});
+
 socket.on('disconnect', () => {
   console.log('disconnected from server');
 });
@@ -54,29 +59,6 @@ function getMapData(map) {
   mapData.rows = map.length;
   mapData.columns = map[mapData.longest].length;
   return mapData;
-}
-
-function genMap(map, terrain) {
-  map = map.split(',');
-  terrain = terrain.split(',');
-  
-  //adding terrain and side sea
-  for (let row = 0; row < map.length; row++) {
-    map[row] = map[row].split('');
-    for (let col = 0; col < map[row].length; col++) {
-      let terrainIndex = Math.floor(Math.random() * terrain.length);
-      map[row][col] = terrain[terrainIndex];
-      terrain.splice(terrainIndex, 1);
-    }
-    map[row].unshift('x');
-    map[row].push('x');
-  }
-
-  //adding top and bottom sea
-  map.unshift('x,'.repeat(map[0].length-1).slice(0, -1).split(','));
-  map.push('x,'.repeat(map[map.length-1].length-1).slice(0, -1).split(','));
-
-  return map
 }
 
 function genCoords(map) {
@@ -160,7 +142,7 @@ function drawMap(map, coords, vertToVert, ctx) {
         let sF = this.height/vertToVert;
         ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), this.width/(sF*0.98), this.height/(sF*0.98));
       };
-      let terrain = map[row][col];
+      let terrain = map[row][col].terrain;
       if (terrain == 't') {
         img.src = images.tree;
       } else if (terrain == 's') {
@@ -180,41 +162,23 @@ function drawMap(map, coords, vertToVert, ctx) {
   }
 }
 
-function genPorts() {
-  //need to know edges that touch sea so we can make ports that are not adjacent
-
-  let shores = 0;
-  for (let row = 0; row < map.length; row++) {
-    if (row == 0 || row == map.length-1) {
-      shores += map[row].length;
-    }else {
-      shores += 2;
-    }  
-  }
-  let ports = Math.floor(9+(shores-12)/2);
-  let portLocs = [];
-  while (portLocs.length < ports) {
-    let randInt = Math.floor(Math.random() * shores);
-    if (!portLocs.includes(randInt)) {
-      portLocs.push(randInt);
-    }
-  }
-}
-
-function main() {
+function main(map) {
   let can = document.getElementById('canvas');
   let ctx = can.getContext('2d');
   can.height = window.innerHeight;
   can.width = window.innerWidth;
 
-  //let startMap = 'xxxx,xxxxx,xxxxxx,xxxxxx,xxxxx,xxxx';
-  let startMap = 'xxx,xxxx,xxxxx,xxxx,xxx';
-  //let startMap = 'xxxxx,xxxxxx,xxxxxx,xxxxxx,xxxxx';
-  let startTerrain = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
-  let map = genMap(startMap, startTerrain);
   let coordsData = genCoords(map, can);
   drawMap(map, coordsData.coords, coordsData.vertToVert, ctx);
 }
 
-main();
+var resizeTimer;
+window.onresize = function() {
+  this.clearTimeout(resizeTimer);
+  this.resizeTimer = setTimeout(this.doneResizing, 1000/60);
+}
+
+function doneResizing() {
+  main(window.map);
+}
 
