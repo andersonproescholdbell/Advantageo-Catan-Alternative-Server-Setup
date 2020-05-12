@@ -8,194 +8,278 @@ socket.on('disconnect', () => {
   console.log('disconnected from server');
 });
 
-let can = document.getElementById('canvas');
-let ctx = can.getContext('2d');
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function offset(x) {
   return Math.floor(x)+0.5;
 }
 
 function rotate(cx, cy, x, y, angle) {
-  var radians = (Math.PI / 180) * angle,
-    cos = Math.cos(radians),
-    sin = Math.sin(radians),
-    nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
-    ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
+  let radians = (Math.PI / 180) * angle,
+      cos = Math.cos(radians),
+      sin = Math.sin(radians),
+      nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
+      ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
   return [offset(nx), offset(ny)];
 }
 
-function indexOfLongest(arr) {
-  var max = arr[0].length;
-  var maxIndex = 0;
+function indexLongest(arr, last) {
+  let max = arr[0].length;
+  let maxIndex = 0;
 
-  for (var i = 1; i < arr.length; i++) {
+  for (let i = 1; i < arr.length; i++) {
     if (arr[i].length > max) {
       maxIndex = i;
       max = arr[i].length;
     }
   }
+  if (last) {
+    max = arr[0].length;
+    maxIndex = 0;
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].length >= max) {
+        maxIndex = i;
+        max = arr[i].length;
+      }
+    }
+  }
   return maxIndex;
 }
 
-function hexExists(x, y, hexes) {
-  for (var i = 0; i < hexes.length; i++) {
-    if (x.toFixed(1) == hexes[i].x.toFixed(1) && y.toFixed(1) == hexes[i].y.toFixed(1)) {
-      return true;
-    }
-  }
-  return false;
+function getMapData(map) {
+  let mapData = {};
+  mapData.longest = indexLongest(map);
+  mapData.rows = map.length;
+  mapData.columns = map[mapData.longest].length;
+  return mapData;
 }
 
-function randColor() {
-  return Math.floor(Math.random()*16777215).toString(16);
+function genMap(map, terrain) {
+  map = map.split(',');
+  terrain = terrain.split(',');
+  for (let row = 0; row < map.length; row++) {
+    map[row] = map[row].split('');
+    for (let col = 0; col < map[row].length; col++) {
+      let terrainIndex = Math.floor(Math.random() * terrain.length);
+      map[row][col] = terrain[terrainIndex];
+      terrain.splice(terrainIndex, 1);
+    }
+    map[row].unshift('x');
+    map[row].push('x');
+  }
+  map.unshift('x,'.repeat(map[0].length-1).slice(0, -1).split(','));
+  map.push('x,'.repeat(map[map.length-1].length-1).slice(0, -1).split(','));
+  return map
 }
 
-function genMap(map) {
-  map = map.split('\n');
-  for (var i = 0; i < map.length; i++) {
-    if (map[i] == '') {
-      map.splice(i, 1);
+function genCenters(map) {
+  let mapData = getMapData(map);
+  let longest = indexLongest(map);
+  let lastLongest = indexLongest(map, true);
+
+  let lenMid = map[longest].length;
+  let numMid = 0;
+  for (let i = 0; i < map.length; i++) {
+    if (map[i].length == map[longest].length) {
+      numMid++;
     }
   }
-  let longest = indexOfLongest(map);
-  let rows = map.length+2;
-  let columns = map[longest].length+2;
 
-  if (window.innerHeight < window.innerWidth) {
-    can.height = window.innerHeight;
-    var vertToVert = (can.height*0.98)/(rows-(0.25*(rows-1)));
-    var apothem = vertToVert/4 * Math.tan(Math.PI/3);
-    can.width = apothem*2*columns;
-  }else {
-    can.width = window.innerWidth;
-    var offW = window.innerWidth*0.005;
-    var apothem = (can.width*0.99)/(2*columns) - offW;
-    var vertToVert = 4*apothem/Math.tan(Math.PI/3);
-    can.height = apothem*2*columns;
-  }
-  //currently broken if browser height > width
+  //will need to see how this works if browser height > width
+  let vertToVert = (window.innerHeight*0.98)/(mapData.rows-(0.25*(mapData.rows-1)));
+  let apothem = vertToVert/4 * Math.tan(Math.PI/3);
+  let tip = apothem*Math.tan(Math.PI/6);
   
-  let side = vertToVert/2;
-  let cenToVert = vertToVert/2;
-  let tip = vertToVert/4;
-
+  let midx = window.innerWidth/2;
+  let midy = window.innerHeight/2;
   let centers = [];
-  let posT = cenToVert + can.height*0.01 || cenToVert + can.width*0.01;
-  for (var i = 0; i < rows; i++) {
+  /*if (numMid%2 == 0) {
+    if (lenMid%2 == 0) {//numMid even lenMid even
+      let top = midy - 1.5*tip + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+      for (let row = 0; row < map.length; row++) {
+        centers.push([]);
+        if (row > (map.length/2 - 1)) {
+          var left = midx + apothem/2 - (map[row].length-1)*apothem;
+        }else {
+          var left = midx - apothem/2 - (map[row].length-1)*apothem;
+        }
+        for (let col = 0; col < map[row].length; col++) {
+          let x = left + col*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3);
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }else {//numMid even lenMid odd
+      let top = midy - 1.5*tip + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+      for (let row = 0; row < map.length; row++) {
+        centers.push([]);
+        if (row > (map.length/2 - 1)) {
+          var left = midx + apothem/2 - (map[row].length-1)*apothem;
+        }else {
+          var left = midx - apothem/2 - (map[row].length-1)*apothem;
+        }
+        for (let col = 0; col < map[row].length; col++) {
+          let x = left + col*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3);
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }
+  }else {
+    if (lenMid%2 == 0) {//numMid odd lenMid even
+
+    }else {//numMid odd lenMid odd
+      let top = midy + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+      for (let row = 0; row < map.length; row++) {
+        centers.push([]);
+        //let left = midx - (map[row].length-1)*apothem;
+        if (row >= longest && row <= lastLongest) {
+          if (row%2 == 0) {
+            var left = midx - apothem/2 - (map[row].length-1)*apothem;
+          }else {
+            var left = midx + apothem/2 - (map[row].length-1)*apothem;
+          }
+        }else {
+          var left = midx + apothem/2 - (map[row].length-1)*apothem;
+        }
+        for (let col = 0; col < map[row].length; col++) {
+          let x = left + col*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3);
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }
+  }*/
+  /*for (let row = 0; row < map.length; row++) {
     centers.push([]);
-    let posR = can.width;
-    let posL = 0;
-    if (i > 0) {
-      posT += vertToVert-tip;
-    }
-    for (var j = 0; j < columns; j++) {
-      if (i%2 == 0) {
-        if (j == 0) {
-          posR -= 2*apothem;
+    let tiles = map[row].length;
+    let top = midy + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+    if (tiles%2 == 0) {
+      for (let col = 0; col < tiles; col++) {
+        if (col <= tiles/2 - 1) {
+          let x = midx + apothem - (col+1)*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3); 
+          centers[centers.length-1].push({x: x, y: y});
         }else {
-          posR -= 2*apothem;
-        }
-        centers[centers.length-1].push({x: posR, y: posT});
-        if (j == columns-1) {
-          posR = can.width;
-        }
-      }else {
-        if (j == 0) {
-          posL += apothem;
-        }else {
-          posL += 2*apothem;
-        }
-        centers[centers.length-1].push({x: posL, y: posT});
-        if (j == columns-1) {
-          posL = 0;
+          let x = midx + apothem + (col-tiles/2)*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3); 
+          centers[centers.length-1].push({x: x, y: y});
         }
       }
-    }
-  }
-
-  map.unshift('');
-  map.push('');
-  for (var i = 0; i < rows; i++) {
-    let start = Math.floor((columns-map[i].length)/2); 
-    if (i == 0 || i == rows-1) {
-      var end = map[i].length+2;
     }else {
-      var end = map[i].length;
+      for (let col = 0; col < tiles; col++) {
+        if (row%2 == 0) {
+          if (col <= tiles/2 - 1) {
+            let x = midx - (col+1)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }else {
+            let x = midx + apothem + (col-tiles/2)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }
+        }else {
+          if (col <= tiles/2 - 1) {
+            let x = midx - apothem - (col+1)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }else {
+            let x = midx + (col-tiles/2)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }
+        }
+      }
     }
-    for (var j = 0; j < end+2; j++) {
-      if (i == 0 || i == rows-1) {
-        var x = centers[i][start+j-2].x, y = centers[i][start+j-2].y;
+  }*/
+  let left = midx - (map[0].length-1)*apothem; 
+  if (map.length%2 == 0) {
+    var top = midy + 1.5*tip - Math.floor(map.length/2)*apothem*Math.sqrt(3);
+  }else {
+    var top = midy - Math.floor(map.length/2)*apothem*Math.sqrt(3);
+  }
+  let lastLen = map[0].length;
+  let lastMove = 'none';
+  for (let row = 0; row < map.length; row++) {
+    centers.push([]);
+
+    if (row != 0) {
+      if (map[row].length > lastLen) {
+        left -= apothem;
+        lastMove = 'sub';
+      }else if (map[row].length < lastLen) {
+        left += apothem;
+        lastMove = 'add';
       }else {
-        var x = centers[i][start+j-1].x, y = centers[i][start+j-1].y;
+        if (lastMove == 'add') {
+          left -= apothem;
+          lastMove = 'sub';
+        }else {
+          left += apothem;
+          lastMove = 'add';
+        }      
       }
-      if (j == 0 || j == end+1 || i == 0 || i == rows-1) {
-        drawHex(x, y, side, 'navy');
-      }else {
-        drawHex(x, y, side, 'grey');
+      lastLen = map[row].length;
+    }
+
+    for (let col = 0; col < map[row].length; col++) {
+      let x = left + col*2*apothem;
+      let y = top + row*apothem*Math.sqrt(3); 
+      centers[centers.length-1].push({x: x, y: y});
+    }
+  }
+  return {centers: centers, vertToVert: vertToVert};
+}
+
+async function drawMap(map, centers, vertToVert, ctx) {
+  let images = {tree: '/img/tree.svg', ore: '/img/ore.svg', water: '/img/water.svg', brick: '/img/brick.svg',
+                sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg'};
+
+  for (let row = 0; row < map.length; row++) { 
+    for (let col = 0; col < map[row].length; col++) {
+      let x = centers[row][col].x;
+      let y = centers[row][col].y;
+      let img = new Image;
+      img.onload = function(){
+        let sF = this.height/vertToVert;
+        ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), this.width/(sF*0.98), this.height/(sF*0.98));
+      };
+      let terrain = map[row][col];
+      if (terrain == 't') {
+        img.src = images.tree;
+      } else if (terrain == 's') {
+        img.src = images.sheep;
+      } else if (terrain == 'w') {
+        img.src = images.wheat;
+      } else if (terrain == 'o') {
+        img.src = images.ore;
+      } else if (terrain == 'b') {
+        img.src = images.brick;
+      } else if (terrain == 'd') {
+        img.src = images.desert;
+      } else if (terrain == 'x') {
+        img.src = images.water;
       }
     }
   }
 }
 
-function drawHex(x, y, length, color) {
-  ctx.beginPath();
+function main() {
+  let can = document.getElementById('canvas');
+  let ctx = can.getContext('2d');
+  can.height = window.innerHeight;
+  can.width = window.innerWidth;
 
-  let coords = rotate(x, y, x+length, y, 90);
-  ctx.moveTo(coords[0], coords[1]);
-
-  for (var side = 0; side < 7; side++) {
-    coords = rotate(x, y, x+length*Math.cos(side*2*Math.PI/6), y+length*Math.sin(side*2*Math.PI/6), 90);
-    ctx.lineTo(coords[0], coords[1]);
-  }
-  
-  ctx.closePath();
-  ctx.lineWidth = 6;
-  ctx.stroke();
-
-  ctx.fillStyle = color;
-  ctx.fill();
+  //let startMap = 'xxxx,xxxxx,xxxxxx,xxxxxx,xxxxx,xxxx';
+  let startMap = 'xxx,xxxx,xxxxx,xxxx,xxx';
+  //let startMap = 'xxxxx,xxxxxx,xxxxxx,xxxxxx,xxxxx';
+  let startTerrain = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
+  let map = genMap(startMap, startTerrain);
+  let centerData = genCenters(map, can);
+  drawMap(map, centerData.centers, centerData.vertToVert, ctx);
 }
 
-function drawHexes(hexes, length, color) {
-  for (var i = 0; i < hexes.length; i++) {
-    let vertices = [];
-    ctx.beginPath();
-    let coords = rotate(hexes[i].x, hexes[i].y, hexes[i].x+length, hexes[i].y, 90);
-    ctx.moveTo(coords[0], coords[1]);
-  
-    for (var side = 0; side < 7; side++) {
-      coords = rotate(hexes[i].x, hexes[i].y, hexes[i].x+length*Math.cos(side*2*Math.PI/6), hexes[i].y+length*Math.sin(side*2*Math.PI/6), 90);
-      ctx.lineTo(coords[0], coords[1]);
-      if (side < 6) {
-        vertices.push(coords);
-      }
-    }
-    hexes[i].vertices = vertices;
-  
-    ctx.fillStyle = color;
-    ctx.fill();
-  }
-  return hexes;
-}
+main();
 
-var testMap = 
-`
-xxx
-xxxx
-xxxxx
-xxxx
-xxx
-`
-genMap(testMap);
-
-/*
-function getCursorPosition(canvas, event) {
-  const rect = canvas.getBoundingClientRect()
-  const x = event.clientX - rect.left
-  const y = event.clientY - rect.top
-  console.log("x: " + x + " y: " + y)
-}
-
-can.addEventListener('mousedown', function(e) {
-  getCursorPosition(can, e)
-});*/
