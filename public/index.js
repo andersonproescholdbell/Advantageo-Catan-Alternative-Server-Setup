@@ -79,17 +79,21 @@ function genMap(map, terrain) {
   return map
 }
 
-function genCenters(map) {
+function genCoords(map) {
   let mapData = getMapData(map);
   
-  //will need to see how this works if browser height > width
-  let vertToVert = (window.innerHeight*0.98)/(mapData.rows-(0.25*(mapData.rows-1)));
-  let apothem = vertToVert/4 * Math.tan(Math.PI/3);
+  if (window.innerHeight < window.innerWidth) {
+    var vertToVert = (window.innerHeight*0.98)/(mapData.rows-(0.25*(mapData.rows-1)));
+    var apothem = vertToVert/4 * Math.tan(Math.PI/3);
+  }else {
+    var apothem = (window.innerWidth*0.98)/(2*mapData.columns);
+    var vertToVert = 4*apothem/Math.tan(Math.PI/3);
+  }
   let tip = apothem*Math.tan(Math.PI/6);
   
   let midx = window.innerWidth/2;
   let midy = window.innerHeight/2;
-  let centers = [];
+  let coords = [];
   let left = midx - (map[0].length-1)*apothem; 
   if (map.length%2 == 0) {
     var top = midy + 1.5*tip - Math.floor(map.length/2)*apothem*Math.sqrt(3);
@@ -99,7 +103,7 @@ function genCenters(map) {
   let lastLen = map[0].length;
   let lastMove = 'none';
   for (let row = 0; row < map.length; row++) {
-    centers.push([]);
+    coords.push([]);
 
     if (row != 0) {
       if (map[row].length > lastLen) {
@@ -121,22 +125,36 @@ function genCenters(map) {
     }
 
     for (let col = 0; col < map[row].length; col++) {
-      let x = left + col*2*apothem;
-      let y = top + row*apothem*Math.sqrt(3); 
-      centers[centers.length-1].push({x: x, y: y});
+      let cx = left + col*2*apothem;
+      let cy = top + row*apothem*Math.sqrt(3); 
+      let vt = {x: cx, y: cy - vertToVert/2};
+      let vtl = {x: cx - apothem, y: cy - apothem/2};
+      let vbl = {x: cx - apothem, y: cy + apothem/2};
+      let vb = {x: cx, y: cy + vertToVert/2};
+      let vbr = {x: cx + apothem , y: cy - apothem/2};
+      let vtr = {x: cx + apothem, y: cy - apothem/2};
+      let etl = {x: cx - apothem*Math.cos(Math.PI/3), y: cy - apothem*Math.sin(Math.PI/3)};
+      let el = {x: cx - apothem, y: cy};
+      let ebl = {x: cx - apothem*Math.cos(Math.PI/3), y: cy + apothem*Math.sin(Math.PI/3)};
+      let ebr = {x: cx + apothem*Math.cos(Math.PI/3), y: cy + apothem*Math.sin(Math.PI/3)};
+      let er = {x: cx + apothem, y: cy};
+      let etr = {x: cx + apothem*Math.cos(Math.PI/3), y: cy - apothem*Math.sin(Math.PI/3)};
+      coords[coords.length-1].push({centers: {x: cx, y: cy},
+                                    vertices: {t: vt, tl: vtl, bl: vbl, b: vb, br: vbr, tr: vtr},
+                                    edges: {tl: etl, l: el, bl: ebl, br: ebr, r: er, tr: etr}});
     }
   }
-  return {centers: centers, vertToVert: vertToVert};
+  return {coords: coords, vertToVert: vertToVert};
 }
 
-function drawMap(map, centers, vertToVert, ctx) {
+function drawMap(map, coords, vertToVert, ctx) {
   let images = {tree: '/img/tree.svg', ore: '/img/ore.svg', water: '/img/water.svg', brick: '/img/brick.svg',
                 sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg'};
 
   for (let row = 0; row < map.length; row++) { 
     for (let col = 0; col < map[row].length; col++) {
-      let x = centers[row][col].x;
-      let y = centers[row][col].y;
+      let x = coords[row][col].centers.x;
+      let y = coords[row][col].centers.y;
       let img = new Image;
       img.onload = function(){
         let sF = this.height/vertToVert;
@@ -160,11 +178,6 @@ function drawMap(map, centers, vertToVert, ctx) {
       }
     }
   }
-}
-
-function genVertices(centers, vertToVert) {
-  //now that we know all centers, we need to know all vertices and middle of edge for each hex
-
 }
 
 function genPorts() {
@@ -199,8 +212,8 @@ function main() {
   //let startMap = 'xxxxx,xxxxxx,xxxxxx,xxxxxx,xxxxx';
   let startTerrain = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
   let map = genMap(startMap, startTerrain);
-  let centerData = genCenters(map, can);
-  drawMap(map, centerData.centers, centerData.vertToVert, ctx);
+  let coordsData = genCoords(map, can);
+  drawMap(map, coordsData.coords, coordsData.vertToVert, ctx);
 }
 
 main();

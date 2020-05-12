@@ -274,3 +274,16 @@ function genCenters(map, can) {
   }
   let longest = indexLongest(map);
   let lastLongest = indexLongest(map, true);
+
+  console.log(coords);
+  for (let row = 0; row < map.length; row++) { 
+    for (let col = 0; col < map[row].length; col++) {
+      for (let [key, value] of Object.entries(coords[row][col].edges)) {
+        let img = new Image;
+        img.onload = function(){
+          ctx.drawImage(this, coords[row][col].edges[key].x - 15, coords[row][col].edges[key].y - 15, 30, 30);
+        };
+        img.src = images.brick;
+      }
+    }
+  }
