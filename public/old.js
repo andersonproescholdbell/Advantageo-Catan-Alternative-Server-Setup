@@ -163,3 +163,114 @@ function genCenters(map, can) {
   for (let i = 0; i < centers.length; i++) {
     sortedCenters.push(centers[i].sort(function(a, b) { return parseFloat(a.x) - parseFloat(b.x); }));
   }*/
+
+/*if (numMid%2 == 0) {
+    if (lenMid%2 == 0) {//numMid even lenMid even
+      let top = midy - 1.5*tip + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+      for (let row = 0; row < map.length; row++) {
+        centers.push([]);
+        if (row > (map.length/2 - 1)) {
+          var left = midx + apothem/2 - (map[row].length-1)*apothem;
+        }else {
+          var left = midx - apothem/2 - (map[row].length-1)*apothem;
+        }
+        for (let col = 0; col < map[row].length; col++) {
+          let x = left + col*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3);
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }else {//numMid even lenMid odd
+      let top = midy - 1.5*tip + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+      for (let row = 0; row < map.length; row++) {
+        centers.push([]);
+        if (row > (map.length/2 - 1)) {
+          var left = midx + apothem/2 - (map[row].length-1)*apothem;
+        }else {
+          var left = midx - apothem/2 - (map[row].length-1)*apothem;
+        }
+        for (let col = 0; col < map[row].length; col++) {
+          let x = left + col*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3);
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }
+  }else {
+    if (lenMid%2 == 0) {//numMid odd lenMid even
+
+    }else {//numMid odd lenMid odd
+      let top = midy + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+      for (let row = 0; row < map.length; row++) {
+        centers.push([]);
+        //let left = midx - (map[row].length-1)*apothem;
+        if (row >= longest && row <= lastLongest) {
+          if (row%2 == 0) {
+            var left = midx - apothem/2 - (map[row].length-1)*apothem;
+          }else {
+            var left = midx + apothem/2 - (map[row].length-1)*apothem;
+          }
+        }else {
+          var left = midx + apothem/2 - (map[row].length-1)*apothem;
+        }
+        for (let col = 0; col < map[row].length; col++) {
+          let x = left + col*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3);
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }
+  }*/
+  /*for (let row = 0; row < map.length; row++) {
+    centers.push([]);
+    let tiles = map[row].length;
+    let top = midy + Math.floor(map.length/2)*apothem*Math.sqrt(3);
+    if (tiles%2 == 0) {
+      for (let col = 0; col < tiles; col++) {
+        if (col <= tiles/2 - 1) {
+          let x = midx + apothem - (col+1)*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3); 
+          centers[centers.length-1].push({x: x, y: y});
+        }else {
+          let x = midx + apothem + (col-tiles/2)*2*apothem;
+          let y = top - row*apothem*Math.sqrt(3); 
+          centers[centers.length-1].push({x: x, y: y});
+        }
+      }
+    }else {
+      for (let col = 0; col < tiles; col++) {
+        if (row%2 == 0) {
+          if (col <= tiles/2 - 1) {
+            let x = midx - (col+1)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }else {
+            let x = midx + apothem + (col-tiles/2)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }
+        }else {
+          if (col <= tiles/2 - 1) {
+            let x = midx - apothem - (col+1)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }else {
+            let x = midx + (col-tiles/2)*2*apothem;
+            let y = top - row*apothem*Math.sqrt(3); 
+            centers[centers.length-1].push({x: x, y: y});
+          }
+        }
+      }
+    }
+  }*/
+
+
+  let lenMid = map[longest].length;
+  let numMid = 0;
+  for (let i = 0; i < map.length; i++) {
+    if (map[i].length == map[longest].length) {
+      numMid++;
+    }
+  }
+  let longest = indexLongest(map);
+  let lastLongest = indexLongest(map, true);
