@@ -50,7 +50,7 @@ function getVertApoth(map, w, h) {
 
   if (w > h) {
     //start off assuming height is limitting factor
-    var vertToVert = (h*0.9)/(mapData.rows-(0.25*(mapData.rows-1)));
+    var vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
     var apothem = vertToVert/4 * Math.tan(Math.PI/3);
 
     if (indexLongest(map) != indexLongest(map, true)) {
@@ -60,9 +60,14 @@ function getVertApoth(map, w, h) {
     }
 
     if (maxW > w) { //width limitted
-      apothem = w/(2*mapData.columns);
+      if (indexLongest(map) != indexLongest(map, true)) {
+        apothem = w/(1+map[mapData.longest].length*2)
+      }else {
+        apothem = w/(2*mapData.columns);
+      }
       vertToVert = 4*apothem/Math.tan(Math.PI/3);
       h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6); 
+      console.log('1');
     }else { //height limitted
       vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
       apothem = vertToVert/4 * Math.tan(Math.PI/3);

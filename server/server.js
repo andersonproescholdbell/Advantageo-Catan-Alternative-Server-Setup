@@ -36,7 +36,6 @@ function main() {
   });
 }
 
-//rework scaling of map so that it's just a wrapper width and height
 //right now there are duplicate edges and vertices coordinates, need to rework
 //rethink how to add boats
 
