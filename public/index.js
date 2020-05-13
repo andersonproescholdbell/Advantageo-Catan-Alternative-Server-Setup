@@ -1,18 +1,3 @@
-let socket = io();
-
-socket.on('connect', () => {
-  console.log('connected to server');
-});
-
-socket.on('map', (map) => {
-  window.map = map;
-  main(map);
-});
-
-socket.on('disconnect', () => {
-  console.log('disconnected from server');
-});
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -34,17 +19,16 @@ function indexLongest(arr, last) {
   let max = arr[0].length;
   let maxIndex = 0;
 
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i].length > max) {
-      maxIndex = i;
-      max = arr[i].length;
-    }
-  }
   if (last) {
-    max = arr[0].length;
-    maxIndex = 0;
     for (let i = 1; i < arr.length; i++) {
       if (arr[i].length >= max) {
+        maxIndex = i;
+        max = arr[i].length;
+      }
+    }
+  }else {
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].length > max) {
         maxIndex = i;
         max = arr[i].length;
       }
@@ -63,20 +47,41 @@ function getMapData(map) {
 
 function genCoords(map) {
   let mapData = getMapData(map);
-  
-  if (window.innerHeight < window.innerWidth) {
-    var vertToVert = (window.innerHeight*0.98)/(mapData.rows-(0.25*(mapData.rows-1)));
+
+  if (window.innerWidth > window.innerHeight) {
+    //start off assuming height is limitting factor
+    var vertToVert = (window.innerHeight*0.9)/(mapData.rows-(0.25*(mapData.rows-1)));
     var apothem = vertToVert/4 * Math.tan(Math.PI/3);
+
+    if (indexLongest(map) != indexLongest(map, true)) {
+      var maxW = apothem + map[mapData.longest].length*2*apothem;
+    }else {
+      var maxW = map[mapData.longest].length*2*apothem;
+    }
+
+    if (maxW > window.innerWidth) {   //map[mapData.longest].length > (map.length*2)/(Math.tan(Math.PI/3))) {
+      apothem = (window.innerWidth*0.95)/(2*mapData.columns);
+      vertToVert = 4*apothem/Math.tan(Math.PI/3);
+      console.log('1');
+    }else {
+      vertToVert = (window.innerHeight*0.95)/(mapData.rows-(0.25*(mapData.rows-1)));
+      apothem = vertToVert/4 * Math.tan(Math.PI/3);
+      console.log('2');
+    }
   }else {
-    var apothem = (window.innerWidth*0.98)/(2*mapData.columns);
+    var apothem = (window.innerWidth*0.9)/(2*mapData.columns);
     var vertToVert = 4*apothem/Math.tan(Math.PI/3);
-  }
+  } 
   let tip = apothem*Math.tan(Math.PI/6);
   
   let midx = window.innerWidth/2;
   let midy = window.innerHeight/2;
   let coords = [];
-  let left = midx - (map[0].length-1)*apothem; 
+  if (indexLongest(map) != indexLongest(map, true)) {
+    var left = midx - (map[0].length-0.5)*apothem;
+  }else {
+    var left = midx - (map[0].length-1)*apothem;
+  } 
   if (map.length%2 == 0) {
     var top = midy + 1.5*tip - Math.floor(map.length/2)*apothem*Math.sqrt(3);
   }else {
@@ -162,22 +167,62 @@ function drawMap(map, coords, vertToVert, ctx) {
   }
 }
 
+function checkWidthLarger() {
+  if (window.innerWidth > window.innerHeight) {
+    return true;
+  }else {
+    return false;
+  }
+}
+
 function main(map) {
   let can = document.getElementById('canvas');
   let ctx = can.getContext('2d');
   can.height = window.innerHeight;
   can.width = window.innerWidth;
 
+  let widthLarger = checkWidthLarger();
+  let oldWidth = window.innerWidth;
+  let oldHeight = window.innerHeight;
+  
+  let resizeTimer;
+  window.onresize = function() {
+    this.clearTimeout(resizeTimer);
+    this.resizeTimer = setTimeout(this.doneResizing, 1000/60);
+  }
+  
+  function doneResizing() {
+    if (widthLarger != checkWidthLarger()) {
+      main(map);
+      widthLarger = checkWidthLarger();
+    }else {
+      let wrapper = document.getElementById('wrapper');
+      if (widthLarger) {
+        wrapper.style.height = window.innerHeight;
+        wrapper.style.width = (window.innerHeight*oldWidth)/oldHeight;
+        oldWidth = window.innerWidth;
+        oldHeight = window.innerHeight;
+      }else {
+
+      }
+    } 
+  }
+
   let coordsData = genCoords(map, can);
   drawMap(map, coordsData.coords, coordsData.vertToVert, ctx);
 }
 
-var resizeTimer;
-window.onresize = function() {
-  this.clearTimeout(resizeTimer);
-  this.resizeTimer = setTimeout(this.doneResizing, 1000/60);
-}
+let socket = io();
 
-function doneResizing() {
-  main(window.map);
-}
+socket.on('connect', () => {
+  console.log('connected to server');
+});
+
+socket.on('map', (map) => {
+  window.map = map;
+  main(map);
+});
+
+socket.on('disconnect', () => {
+  console.log('disconnected from server');
+});
