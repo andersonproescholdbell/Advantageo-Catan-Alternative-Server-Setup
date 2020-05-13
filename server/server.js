@@ -17,21 +17,56 @@ server.listen(port, () => {
 })
 ;
 function main() {
-  //let startMap = 'xxxx,xxxxx,xxxxxx,xxxxxx,xxxxx,xxxx';
-  let mapi = 'xxx,xxxx,xxxxx,xxxx,xxx';
-  //let startMap = 'xxxxx,xxxxxx,xxxxxx,xxxxxx,xxxxx';
-  let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d';//+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
+  let mapi = 'xxxx,xxxxx,xxxxxx,xxxxxx,xxxxx,xxxx';
+  //let mapi = 'xxx,xxxx,xxxxx,xxxx,xxx';
+  //let mapi = 'xxxxx,xxxxx,xxxxx,xxxxxx,xxxxx,xxxx';
+  let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
   let map = genMap(mapi, terraini);
 
   io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
 
     socket.emit('map', map);
+
+    socket.emit('shores', genPorts(map));
   
     socket.on('disconnect', () => {
       console.log(socket.id + ' disconnected.');
     });
   });
+}
+
+//rework scaling of map so that it's just a wrapper width and height
+//right now there are duplicate edges and vertices coordinates, need to rework
+//rethink how to add boats
+
+function firstCol(previouses, current, next) {
+  if (current > previous) {
+    if (next > current) {
+      return {shores: 4, edges: {tl: ['sea'], l: ['sea'], bl: [], br: [], r: [], tr: []}}
+    }else if (next < current) {
+      return {shores: 6, edges: {tl: ['sea'], l: ['sea'], bl: ['sea'], br: [], r: [], tr: []}}
+    }else {
+      //if ()
+      return {shores: 5, edges: {tl: ['sea'], l: ['sea'], bl: [], br: [], r: [], tr: []}}
+    }
+  }else if (current < previous) {
+    if (next > current) {
+      shores += 2;
+    }else if (next < current) {
+      shores += 4;
+    }else {
+      shores += 3;
+    }
+  }else {
+    if (next > current) {
+      shores += 3;
+    }else if (next < current) {
+      shores += 5;
+    }else {
+      shores += 4;
+    }
+  }
 }
 
 function genMap(map, terrain) {
@@ -63,6 +98,8 @@ function genMap(map, terrain) {
     map[0].push({terrain: 'x',
                  vertices: {t: '', tl: '', bl: '', b: '', br: '', tr: ''},
                  edges: {tl: '', l: '', bl: '', br: '', r: '', tr: ''}});
+  }
+  for (let i = 0; i < map[map.length-2].length-1; i++) {
     map[map.length-1].push({terrain: 'x',
                             vertices: {t: '', tl: '', bl: '', b: '', br: '', tr: ''},
                             edges: {tl: '', l: '', bl: '', br: '', r: '', tr: ''}});
@@ -71,23 +108,59 @@ function genMap(map, terrain) {
   return map
 }
 
-function genPorts() {
-  //need to know edges that touch sea so we can make ports that are not adjacent
-
+function genPorts(map) {
   let shores = 0;
   for (let row = 0; row < map.length; row++) {
     if (row == 0 || row == map.length-1) {
-      shores += map[row].length;
+      shores += (map[row].length-1)*2;
     }else {
-      shores += 2;
-    }  
-  }
-  let ports = Math.floor(9+(shores-12)/2);
-  let portLocs = [];
-  while (portLocs.length < ports) {
-    let randInt = Math.floor(Math.random() * shores);
-    if (!portLocs.includes(randInt)) {
-      portLocs.push(randInt);
+      let previous = map[row-1].length;
+      let current = map[row].length;
+      let next = map[row+1].length;
+      if (row == 1) {
+        if (next > current) {
+          shores += 2;
+        }else if (next < current) {
+          shores += 4;
+        }else {
+          shores += 3;
+        }
+      }else if (row == map.length-2) {
+        if (previous > current) {
+          shores += 2;
+        }else if (previous < current) {
+          shores += 4;
+        }else {
+          shores += 3;
+        }
+      }else {
+        if (current > previous) {
+          if (next > current) {
+            shores += 4;
+          }else if (next < current) {
+            shores += 6;
+          }else {
+            shores += 5;
+          }
+        }else if (current < previous) {
+          if (next > current) {
+            shores += 2;
+          }else if (next < current) {
+            shores += 4;
+          }else {
+            shores += 3;
+          }
+        }else {
+          if (next > current) {
+            shores += 3;
+          }else if (next < current) {
+            shores += 5;
+          }else {
+            shores += 4;
+          }
+        }
+      }
     }
   }
+  return Math.floor(shores/(10/3));
 }

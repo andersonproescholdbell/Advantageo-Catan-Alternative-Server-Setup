@@ -287,3 +287,62 @@ function genCenters(map, can) {
       }
     }
   }
+
+  function genMap(map, terrain) {
+    map = map.split(',');
+    terrain = terrain.split(',');
+    
+    //adding terrain and side sea
+    let shores = 0;
+    let lastLen = map[0].length;
+    let lastMove = 'sub';
+    for (let row = 0; row < map.length; row++) {
+      map[row] = map[row].split('');
+      let current = map[row].length;
+      let next = map[row+1].length;
+      for (let col = 0; col < map[row].length; col++) {
+        let terrainIndex = Math.floor(Math.random() * terrain.length);
+        let current = map[row][col];
+        current.terrain = terrain[terrainIndex];
+        current.vertices = {t: [], tl: [], bl: [], b: [], br: [], tr: []};
+        terrain.splice(terrainIndex, 1);
+  
+        if (row == 0) {
+          current.edges = {tl: ['sea'], l: [], bl: [], br: [], r: [], tr: ['sea']};
+          shores += 2;
+        }else if (row == map.length-1) {
+          current.edges = {tl: [], l: [], bl: ['sea'], br: ['sea'], r: [], tr: []};
+        }else if (col == 0) {
+          let data = firstCol(previouses, current, next);
+          current.edges = data.edges;
+          shores += data.shores;
+        }else if (col == map[row].length-1) {
+  
+        }
+        
+        
+      }
+      map[row].unshift({terrain: 'x',
+                        vertices: {t: {}, tl: {}, bl: {}, b: {}, br: {}, tr: {}},
+                        edges: {tl: {}, l: {}, bl: {}, br: {}, r: {}, tr: {}}});
+      map[row].push({terrain: 'x',
+                     vertices: {t: {}, tl: {}, bl: {}, b: {}, br: {}, tr: {}},
+                     edges: {tl: {}, l: {}, bl: {}, br: {}, r: {}, tr: {}}});
+    }
+  
+    //adding top and bottom sea
+    map.unshift([]);
+    map.push(([]));
+    for (let i = 0; i < map[1].length-1; i++) {
+      map[0].push({terrain: 'x',
+                   vertices: {t: '', tl: '', bl: '', b: '', br: '', tr: ''},
+                   edges: {tl: '', l: '', bl: '', br: '', r: '', tr: ''}});
+    }
+    for (let i = 0; i < map[map.length-2].length-1; i++) {
+      map[map.length-1].push({terrain: 'x',
+                              vertices: {t: '', tl: '', bl: '', b: '', br: '', tr: ''},
+                              edges: {tl: '', l: '', bl: '', br: '', r: '', tr: ''}});
+    }
+  
+    return map
+  }

@@ -181,4 +181,3 @@ window.onresize = function() {
 function doneResizing() {
   main(window.map);
 }
-
