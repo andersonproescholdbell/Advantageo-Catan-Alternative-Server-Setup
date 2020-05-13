@@ -45,12 +45,12 @@ function getMapData(map) {
   return mapData;
 }
 
-function genCoords(map) {
+function getVertApoth(map, w, h) {
   let mapData = getMapData(map);
 
-  if (window.innerWidth > window.innerHeight) {
+  if (w > h) {
     //start off assuming height is limitting factor
-    var vertToVert = (window.innerHeight*0.9)/(mapData.rows-(0.25*(mapData.rows-1)));
+    var vertToVert = (h*0.9)/(mapData.rows-(0.25*(mapData.rows-1)));
     var apothem = vertToVert/4 * Math.tan(Math.PI/3);
 
     if (indexLongest(map) != indexLongest(map, true)) {
@@ -59,23 +59,39 @@ function genCoords(map) {
       var maxW = map[mapData.longest].length*2*apothem;
     }
 
-    if (maxW > window.innerWidth) {   //map[mapData.longest].length > (map.length*2)/(Math.tan(Math.PI/3))) {
-      apothem = (window.innerWidth*0.95)/(2*mapData.columns);
+    if (maxW > w) { //width limitted
+      apothem = w/(2*mapData.columns);
       vertToVert = 4*apothem/Math.tan(Math.PI/3);
-      console.log('1');
-    }else {
-      vertToVert = (window.innerHeight*0.95)/(mapData.rows-(0.25*(mapData.rows-1)));
+      h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6); 
+    }else { //height limitted
+      vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
       apothem = vertToVert/4 * Math.tan(Math.PI/3);
-      console.log('2');
+      if (indexLongest(map) != indexLongest(map, true)) {
+        w = apothem + map[mapData.longest].length*2*apothem;
+      }else {
+        w = map[mapData.longest].length*2*apothem;
+      }
     }
-  }else {
-    var apothem = (window.innerWidth*0.9)/(2*mapData.columns);
+  }else { //width limitted
+    if (indexLongest(map) != indexLongest(map, true)) {
+      var apothem = w/(1+map[mapData.longest].length*2)
+    }else {
+      var apothem = w/(2*mapData.columns);
+    }
     var vertToVert = 4*apothem/Math.tan(Math.PI/3);
-  } 
+    h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6);
+  }
+  return {vertToVert: vertToVert*0.95, apothem: apothem*0.95, w: w, h: h};
+}
+
+function genCoords(map, w, h) {
+  let data = getVertApoth(map, w, h);
+  let vertToVert = data.vertToVert;
+  let apothem = data.apothem;
   let tip = apothem*Math.tan(Math.PI/6);
   
-  let midx = window.innerWidth/2;
-  let midy = window.innerHeight/2;
+  let midx = w/2;
+  let midy = h/2;
   let coords = [];
   if (indexLongest(map) != indexLongest(map, true)) {
     var left = midx - (map[0].length-0.5)*apothem;
@@ -167,49 +183,37 @@ function drawMap(map, coords, vertToVert, ctx) {
   }
 }
 
-function checkWidthLarger() {
-  if (window.innerWidth > window.innerHeight) {
-    return true;
-  }else {
-    return false;
-  }
+function redraw(map) {
+  let can = document.getElementById('canvas');
+  let ctx = can.getContext('2d');
+  let w = window.innerWidth;//screen.width*1.0;
+  let h = window.innerHeight;//screen.height*1.0;
+
+  let wh = getVertApoth(map, w, h);
+  can.width = wh.w;
+  can.height = wh.h;
+
+  let coordsData = genCoords(map, wh.w, wh.h);
+  drawMap(map, coordsData.coords, coordsData.vertToVert, ctx);
 }
 
 function main(map) {
-  let can = document.getElementById('canvas');
-  let ctx = can.getContext('2d');
-  can.height = window.innerHeight;
-  can.width = window.innerWidth;
+  redraw(map);
 
-  let widthLarger = checkWidthLarger();
-  let oldWidth = window.innerWidth;
-  let oldHeight = window.innerHeight;
-  
   let resizeTimer;
   window.onresize = function() {
     this.clearTimeout(resizeTimer);
-    this.resizeTimer = setTimeout(this.doneResizing, 1000/60);
+    this.resizeTimer = setTimeout(doneResizing, 1000/60);
   }
-  
+  let oldW = window.innerWidth;
+  let oldH = window.innerHeight;
   function doneResizing() {
-    if (widthLarger != checkWidthLarger()) {
-      main(map);
-      widthLarger = checkWidthLarger();
-    }else {
-      let wrapper = document.getElementById('wrapper');
-      if (widthLarger) {
-        wrapper.style.height = window.innerHeight;
-        wrapper.style.width = (window.innerHeight*oldWidth)/oldHeight;
-        oldWidth = window.innerWidth;
-        oldHeight = window.innerHeight;
-      }else {
-
-      }
-    } 
+    let currW = window.innerWidth, currH = window.innerHeight;
+    if (currW > oldW*1.333 || currW < oldW*0.666 || currH > oldH*1.333 || currH < oldH*0.666) {
+      redraw(map);
+      oldW = currW, oldH = currH;
+    }
   }
-
-  let coordsData = genCoords(map, can);
-  drawMap(map, coordsData.coords, coordsData.vertToVert, ctx);
 }
 
 let socket = io();

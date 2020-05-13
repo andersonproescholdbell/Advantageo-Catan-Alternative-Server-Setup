@@ -346,3 +346,85 @@ function genCenters(map, can) {
   
     return map
   }
+
+  /*let resizeTimer;
+  window.onresize = function() {
+    this.clearTimeout(resizeTimer);
+    this.resizeTimer = setTimeout(doneResizing, 1000/60);
+  }
+  
+  function doneResizing() {
+    document.getElementById('w1').style.height = window.innerHeight + 'px';
+  }*/
+
+  
+
+  /*let widthLimitting = checkWidthLimitting(map);
+  let oldWidth = window.innerWidth;
+  let oldHeight = window.innerHeight;
+  
+  let resizeTimer;
+  window.onresize = function() {
+    this.clearTimeout(resizeTimer);
+    this.resizeTimer = setTimeout(doneResizing, 1000/60);
+  }
+  
+  function doneResizing() {
+
+    let isWidthLimitting = checkWidthLimitting(map);
+    if (widthLimitting != isWidthLimitting) {
+      console.log('1');
+      main(map);
+      widthLimitting = isWidthLimitting;
+    }else {
+      let wrapper = document.getElementById('wrapper');
+      if (isWidthLimitting) {
+        console.log('2');
+        wrapper.style.height = window.innerHeight + 'px';
+        wrapper.style.width = (window.innerHeight*oldWidth)/oldHeight + 'px';
+        oldWidth = window.innerWidth;
+        oldHeight = window.innerHeight;
+      }else {
+        console.log('3');
+        wrapper.style.width = window.innerWidth + 'px';
+        wrapper.style.height = (window.innerWidth*oldHeight)/oldWidth + 'px';
+        oldWidth = window.innerWidth;
+        oldHeight = window.innerHeight;
+      }
+    }*
+  }*/
+
+  window.onresize = async function() {
+    let w1 = document.getElementById('w1');
+    await sleep(500);
+    if (w1.style.height > window.innerHeight) {
+      w1.style.height = window.innerHeight;
+    }
+    if (w1.style.width > window.innerWidth) {
+      w1.style.width = window.innerWidth;
+    }
+  }
+
+  function checkWidthLimitting(map) {
+    let mapData = getMapData(map);
+    if (window.innerWidth > window.innerHeight) {
+      var vertToVert = (window.innerHeight*0.9)/(mapData.rows-(0.25*(mapData.rows-1)));
+      var apothem = vertToVert/4 * Math.tan(Math.PI/3);
+  
+      if (indexLongest(map) != indexLongest(map, true)) {
+        var maxW = apothem + map[mapData.longest].length*2*apothem;
+      }else {
+        var maxW = map[mapData.longest].length*2*apothem;
+      }
+  
+      if (maxW > window.innerWidth) {
+        return true;
+      }else {
+        return false;
+      }
+    }else {
+      return true;
+    }
+  }
+
+  //vertToVert = h/(mapData.rows-(Math.tan(Math.PI/3)*Math.sin(Math.PI/6)*0.25*(mapData.rows-1)));
