@@ -428,3 +428,20 @@ function genCenters(map, can) {
   }
 
   //vertToVert = h/(mapData.rows-(Math.tan(Math.PI/3)*Math.sin(Math.PI/6)*0.25*(mapData.rows-1)));
+
+  for (let i = 0; i < coords.vertices.length; i++) {
+    let img = new Image;
+    img.onload = function(){
+      ctx.drawImage(this, coords.vertices[i].x-10, coords.vertices[i].y-10, 20, 20);
+    };
+    img.src = images.brick;
+  }
+
+  function rotate(cx, cy, x, y, angle) {
+  let radians = (Math.PI / 180) * angle,
+      cos = Math.cos(radians),
+      sin = Math.sin(radians),
+      nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
+      ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
+  return [offset(nx), offset(ny)];
+}
