@@ -21,9 +21,11 @@ function main() {
   //let mapi = 'xxx,xxxx,xxxxx,xxxx,xxx';
   //let mapi = 'xxx,xxxx,xxx';
   //let mapi = 'xxxx,xxxxx,xxxx,xxxxx,xxxx';
-  let mapi = 'xxx,xxxx,xxx,xxxx';
+  let mapi = 'xxx,xxxx,xxxx,xxxx,xxx';
+  /*NEED TO FIX DIMENSIONS FOR let mapi = 'xxx,xxx,xxxx,xxxxx';*/
   let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
   let map = genMap(mapi, terraini);
+  map = getPortLocs(map).map;
 
   io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
@@ -42,171 +44,111 @@ function main() {
   });
 }
 
-function placePorts(map) {
-  let portData = getNumPorts(map);
-  let portPlacements = [];
-  while (portPlacements.length < portData.ports) {
-    let rand = Math.floor(Math.random() * Math.floor(portData.shores));
-    if (!portPlacements.includes(rand)) {
-      portPlacements.push(rand);
-    }
-  }
-
-  let count = 0;
-  let map2 = map;
-  for (let row = 0; row < map.length; row++) {
-    for (let col = 0; col < map[row].length; col++) {
-      if (portPlacements.includes(count)) {
-        if (row == 0) {
-
-        }
-      }
-      
-      if (row == 0 || row == map.length-1) {
-        shores += (map[row].length-1)*2;
+function getPortLocs(map) {
+  function subAdd(map, row, lastLen) {
+    if (map[row].length > lastLen) {
+      return 'sub';
+    }else if (map[row].length < lastLen) {
+      return 'add';
+    }else {
+      if (lastMove == 'add') {
+        return 'sub';
       }else {
-        let previous = map[row-1].length;
-        let current = map[row].length;
-        let next = map[row+1].length;
-        if (row == 1) {
-          if (next > current) {
-            shores += 2;
-          }else if (next < current) {
-            shores += 4;
-          }else {
-            shores += 3;
-          }
-        }else if (row == map.length-2) {
-          if (previous > current) {
-            shores += 2;
-          }else if (previous < current) {
-            shores += 4;
-          }else {
-            shores += 3;
-          }
-        }else {
-          if (current > previous) {
-            if (next > current) {
-              shores += 4;
-            }else if (next < current) {
-              shores += 6;
-            }else {
-              shores += 5;
-            }
-          }else if (current < previous) {
-            if (next > current) {
-              shores += 2;
-            }else if (next < current) {
-              shores += 4;
-            }else {
-              shores += 3;
-            }
-          }else {
-            if (next > current) {
-              shores += 3;
-            }else if (next < current) {
-              shores += 5;
-            }else {
-              shores += 4;
-            }
-          }
-        }
-      }
-      count++;
+        return 'add';
+      }      
     }
   }
 
-  return map;
-}
-
-function getNumPorts(map) {
   let shores = 0;
+  let lastMove = 'none';
   for (let row = 1; row < map.length-1; row++) {
+    let lastLen = map[row-1].length;
+    let currLen = map[row].length;
+    let nextLen = map[row+1].length;
+
+    lastMove = subAdd(map, row, lastLen, lastMove);
+    let nextMove = subAdd(map, row+1, map[row].length, lastMove);
+
     let firstRow = 1;
     let lastRow = map.length-2;
     for (let col = 1; col < map[row].length-1; col++) {
       let firstCol = 1;
-      let lastCol = map[row].length-2;
+      let lastCol = map[row].length-2; 
+
       let thisCol = map[row][col];
-      
-      let previous = map[row-1].length;
-      let current = map[row].length;
-      let next = map[row+1].length;
+
+      //always
       if (row == firstRow) {
         thisCol.sea.push(1,2);
-        if (next > current) {
-          if (col == firstCol) {
-            thisCol.sea.push(3);
-          }else if (col == lastCol) {
-            thisCol.sea.push(0);
-          }
-        }else if (next < current) {
-          shores += 4;
-          if (col == firstCol) {
-            thisCol.sea.push(4);
-          }else if (col == lastCol) {
-            thisCol.sea.push(5);
-          }
-        }else {
-          shores += 3;
-          //if the next row is the same length
-          //think need to implement lastmove system
-        }
+      }else if (row == lastRow) {
+        thisCol.sea.push(4,5);
       }
-    }
+      if (col == firstCol) {
+        thisCol.sea.push(3);
+      }else if (col == lastCol) {
+        thisCol.sea.push(0);
+      }
 
-    if (row == 0 || row == map.length-1) {
-      shores += (map[row].length-1)*2;
-    }else {
-      let previous = map[row-1].length;
-      let current = map[row].length;
-      let next = map[row+1].length;
-      if (row == 1) {
-        if (next > current) {
-          shores += 2;
-        }else if (next < current) {
-          shores += 4;
-        }else {
-          shores += 3;
-        }
-      }else if (row == map.length-2) {
-        if (previous > current) {
-          shores += 2;
-        }else if (previous < current) {
-          shores += 4;
-        }else {
-          shores += 3;
-        }
-      }else {
-        if (current > previous) {
-          if (next > current) {
-            shores += 4;
-          }else if (next < current) {
-            shores += 6;
-          }else {
-            shores += 5;
+      if (row != firstRow && row != lastRow) {
+        //comparing to above row
+        if (col == firstCol) {
+          if (currLen < lastLen) {
+            //nothing added
+          }else if (currLen > lastLen) {
+            thisCol.sea.push(2);
+          }else if (currLen == lastLen) {
+            if (lastMove == 'sub') {
+              thisCol.sea.push(2);
+            }else if (lastMove == 'add') {
+              //nothing added
+            }
           }
-        }else if (current < previous) {
-          if (next > current) {
-            shores += 2;
-          }else if (next < current) {
-            shores += 4;
-          }else {
-            shores += 3;
+        }else if (col == lastCol) {
+          if (currLen < lastLen) {
+            //nothing added
+          }else if (currLen > lastLen) {
+            thisCol.sea.push(1);
+          }else if (currLen == lastLen) {
+            if (lastMove == 'sub') {
+              //nothing added
+            }else if (lastMove == 'add') {
+              thisCol.sea.push(1);
+            }
           }
-        }else {
-          if (next > current) {
-            shores += 3;
-          }else if (next < current) {
-            shores += 5;
-          }else {
-            shores += 4;
+        }
+
+        //comparing to below row
+        if (col == firstCol) {
+          if (currLen < nextLen) {
+            //nothing added
+          }else if (currLen > nextLen) {
+            thisCol.sea.push(4);
+          }else if (currLen == nextLen) {
+            if (nextMove == 'add') {
+              thisCol.sea.push(4);
+            }else if (nextMove == 'sub') {
+              //nothing added
+            }
+          }
+        }else if (col == lastCol) {
+          if (currLen < nextLen) {
+            //nothing added
+          }else if (currLen > nextLen) {
+            thisCol.sea.push(5);
+          }else if (currLen == nextLen) {
+            if (nextMove == 'add') {
+              //nothing added
+            }else if (nextMove == 'sub') {
+              thisCol.sea.push(5);
+            }
           }
         }
       }
+    
+
     }
   }
-  return {shores: shores, ports: Math.floor(shores/(10/3))};
+  return {map: map};//shores: shores, ports: Math.floor(shores/(10/3))};
 }
 
 function genMap(map, terrain) {

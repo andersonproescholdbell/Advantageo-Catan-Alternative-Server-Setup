@@ -68,7 +68,6 @@ function getVertApoth(map, w, h) {
       var maxW = apothem + map[mapData.longest].length*2*apothem;
       //only applies if 2 max ones are next to each other
     }else {
-      console.log('normal wide');
       var maxW = map[mapData.longest].length*2*apothem;
     }
 
@@ -81,7 +80,6 @@ function getVertApoth(map, w, h) {
       vertToVert = 4*apothem/Math.tan(Math.PI/3);
       h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6); 
     }else { //height limitted
-      console.log('2');
       w = maxW;
     }
   }else { //width limitted
