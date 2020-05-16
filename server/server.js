@@ -20,7 +20,8 @@ function main() {
   //let mapi = 'xxxx,xxxxx,xxxxxx,xxxxxx,xxxxx,xxxx';
   //let mapi = 'xxx,xxxx,xxxxx,xxxx,xxx';
   //let mapi = 'xxx,xxxx,xxx';
-  let mapi = 'xxx,xxxx,xxx,xxxx,xxx';
+  //let mapi = 'xxxx,xxxxx,xxxx,xxxxx,xxxx';
+  let mapi = 'xxx,xxxx,xxx,xxxx';
   let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
   let map = genMap(mapi, terraini);
 
@@ -120,7 +121,40 @@ function placePorts(map) {
 
 function getNumPorts(map) {
   let shores = 0;
-  for (let row = 0; row < map.length; row++) {
+  for (let row = 1; row < map.length-1; row++) {
+    let firstRow = 1;
+    let lastRow = map.length-2;
+    for (let col = 1; col < map[row].length-1; col++) {
+      let firstCol = 1;
+      let lastCol = map[row].length-2;
+      let thisCol = map[row][col];
+      
+      let previous = map[row-1].length;
+      let current = map[row].length;
+      let next = map[row+1].length;
+      if (row == firstRow) {
+        thisCol.sea.push(1,2);
+        if (next > current) {
+          if (col == firstCol) {
+            thisCol.sea.push(3);
+          }else if (col == lastCol) {
+            thisCol.sea.push(0);
+          }
+        }else if (next < current) {
+          shores += 4;
+          if (col == firstCol) {
+            thisCol.sea.push(4);
+          }else if (col == lastCol) {
+            thisCol.sea.push(5);
+          }
+        }else {
+          shores += 3;
+          //if the next row is the same length
+          //think need to implement lastmove system
+        }
+      }
+    }
+
     if (row == 0 || row == map.length-1) {
       shores += (map[row].length-1)*2;
     }else {
@@ -184,21 +218,21 @@ function genMap(map, terrain) {
     map[row] = map[row].split('');
     for (let col = 0; col < map[row].length; col++) {
       let terrainIndex = Math.floor(Math.random() * terrain.length);
-      map[row][col] = {terrain: terrain[terrainIndex]};
+      map[row][col] = {terrain: terrain[terrainIndex], sea: []};
       terrain.splice(terrainIndex, 1);
     }
-    map[row].unshift({terrain: 'x'});
-    map[row].push({terrain: 'x'});
+    map[row].unshift({terrain: 'x', sea: []});
+    map[row].push({terrain: 'x', sea: []});
   }
 
   //adding top and bottom sea
   map.unshift([]);
   map.push(([]));
   for (let i = 0; i < map[1].length-1; i++) {
-    map[0].push({terrain: 'x'});
+    map[0].push({terrain: 'x', sea: []});
   }
   for (let i = 0; i < map[map.length-2].length-1; i++) {
-    map[map.length-1].push({terrain: 'x'});
+    map[map.length-1].push({terrain: 'x', sea: []});
   }
 
   return map

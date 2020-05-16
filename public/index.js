@@ -36,22 +36,44 @@ function getMapData(map) {
   return mapData;
 }
 
+function isExtraWide(map) {
+  let longest = map[indexLongest(map)].length;
+  let longestIndex = -1;
+  for (let i = 0; i < map.length; i++) {
+    if (map[i].length == longest) {
+      if (longestIndex == -1) {
+        longestIndex = i;
+      }else {
+        if (i == longestIndex+1) {
+          return true
+        }else {
+          longestIndex = i;
+        }
+      }
+    }
+  }
+  return false
+}
+
 function getVertApoth(map, w, h) {
   let mapData = getMapData(map);
+  let extraWide = isExtraWide(map);
 
   if (w > h) {
     //start off assuming height is limitting factor
     var vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
     var apothem = vertToVert/4 * Math.tan(Math.PI/3);
 
-    if (indexLongest(map) != indexLongest(map, true)) {
+    if (extraWide) {
       var maxW = apothem + map[mapData.longest].length*2*apothem;
+      //only applies if 2 max ones are next to each other
     }else {
+      console.log('normal wide');
       var maxW = map[mapData.longest].length*2*apothem;
     }
 
     if (maxW > w) { //width limitted
-      if (indexLongest(map) != indexLongest(map, true)) {
+      if (extraWide) {
         apothem = w/(1+map[mapData.longest].length*2)
       }else {
         apothem = w/(2*mapData.columns);
@@ -59,16 +81,11 @@ function getVertApoth(map, w, h) {
       vertToVert = 4*apothem/Math.tan(Math.PI/3);
       h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6); 
     }else { //height limitted
-      vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
-      apothem = vertToVert/4 * Math.tan(Math.PI/3);
-      if (indexLongest(map) != indexLongest(map, true)) {
-        w = apothem + map[mapData.longest].length*2*apothem;
-      }else {
-        w = map[mapData.longest].length*2*apothem;
-      }
+      console.log('2');
+      w = maxW;
     }
   }else { //width limitted
-    if (indexLongest(map) != indexLongest(map, true)) {
+    if (extraWide) {
       var apothem = w/(1+map[mapData.longest].length*2)
     }else {
       var apothem = w/(2*mapData.columns);
@@ -84,7 +101,7 @@ function genCoords(map, vertToVert, apothem, w, h) {
   
   let midx = w/2;
   let midy = h/2;
-  if (indexLongest(map) != indexLongest(map, true)) {
+  if (isExtraWide(map)) {
     var left = midx - (map[0].length-0.5)*apothem;
   }else {
     var left = midx - (map[0].length-1)*apothem;
@@ -118,34 +135,28 @@ function genCoords(map, vertToVert, apothem, w, h) {
     }
 
     for (let col = 0; col < map[row].length; col++) {
-      //edges
+      //used multiple times
+      let acp3 = apothem*Math.cos(Math.PI/3);
+      let asp3 = apothem*Math.sin(Math.PI/3);
+      //centers
       let cx = left + col*2*apothem;
       let cy = top + row*apothem*Math.sqrt(3);
       coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain});
-      if (row == 0) {
-        let etl = {x: cx - apothem*Math.cos(Math.PI/3), y: cy - apothem*Math.sin(Math.PI/3)};
-        let etr = {x: cx + apothem*Math.cos(Math.PI/3), y: cy - apothem*Math.sin(Math.PI/3)};
-        coords.edges.push(etl, etr);
-      }
-      let ebl = {x: cx - apothem*Math.cos(Math.PI/3), y: cy + apothem*Math.sin(Math.PI/3)};
-      let ebr = {x: cx + apothem*Math.cos(Math.PI/3), y: cy + apothem*Math.sin(Math.PI/3)};
-      coords.edges.push(ebl, ebr);
-      if (col == 0) {
-        let el = {x: cx - apothem, y: cy};
-        coords.edges.push(el);
-      }
+      //edges
+      let ebl = {x: cx - acp3, y: cy + asp3};
+      let ebr = {x: cx + acp3, y: cy + asp3};
       let er = {x: cx + apothem, y: cy};
-      coords.edges.push(er);
-      if (col == 0 && lastLen < map[row].length) {
-        let etl = {x: cx - apothem*Math.cos(Math.PI/3), y: cy - apothem*Math.sin(Math.PI/3)};
-        coords.edges.push(etl);
-      }else if (col == map[row].length-1 && lastLen < map[row].length) {
-        let etr = {x: cx + apothem*Math.cos(Math.PI/3), y: cy - apothem*Math.sin(Math.PI/3)};
-        coords.edges.push(etr);
-      }
-
+      coords.edges.push(ebl, ebr, er);
       //vertices
+      let vbl = {x: cx - apothem, y: cy + apothem/2};
+      let vb = {x: cx, y: cy + vertToVert/2};
+      coords.vertices.push(vbl, vb);
       if (row == 0) {
+        //edges
+        let etl = {x: cx - acp3, y: cy - asp3};
+        let etr = {x: cx + acp3, y: cy - asp3};
+        coords.edges.push(etl, etr);
+        //vertices 
         let vtl = {x: cx - apothem, y: cy - apothem/2};
         let vt = {x: cx, y: cy - vertToVert/2};
         coords.vertices.push(vtl, vt);
@@ -154,20 +165,31 @@ function genCoords(map, vertToVert, apothem, w, h) {
           coords.vertices.push(vtr);
         }
       }
-      let vbl = {x: cx - apothem, y: cy + apothem/2};
-      let vb = {x: cx, y: cy + vertToVert/2};
-      coords.vertices.push(vbl, vb);
-      if (col == 0 && lastLen < map[row].length) {
-        let vtl = {x: cx - apothem, y: cy - apothem/2};
-        coords.vertices.push(vtl);
+      if (col == 0) {
+        //edges
+        let el = {x: cx - apothem, y: cy};
+        coords.edges.push(el);
+        if (lastLen < map[row].length) {
+          //edges
+          let etl = {x: cx - acp3, y: cy - asp3};
+          coords.edges.push(etl);
+          //vertices
+          let vtl = {x: cx - apothem, y: cy - apothem/2};
+          coords.vertices.push(vtl);
+        }
       }else if (col == map[row].length-1) {
-        if (map[row].length > lastLen) {
+        //vertices
+        let vbr = {x: cx + apothem , y: cy + apothem/2}
+        coords.vertices.push(vbr);
+        if (lastLen < map[row].length) {
+          //edges
+          let etr = {x: cx + acp3, y: cy - asp3};
+          coords.edges.push(etr);
+          //vertices
           let vtr = {x: cx + apothem, y: cy - apothem/2};
           coords.vertices.push(vtr);
         }
-        let vbr = {x: cx + apothem , y: cy + apothem/2}
-        coords.vertices.push(vbr);
-      }
+      }  
     }
     lastLen = map[row].length;
   }
@@ -208,8 +230,8 @@ function drawMap(coords, vertToVert, ctx) {
 function redraw(map) {
   let can = document.getElementById('canvas');
   let ctx = can.getContext('2d');
-  let w = window.innerWidth;//screen.width*1.0;
-  let h = window.innerHeight;//screen.height*1.0;
+  let w = window.innerWidth;
+  let h = window.innerHeight;
 
   let vawh = getVertApoth(map, w, h);
   can.width = vawh.w;
