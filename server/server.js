@@ -21,16 +21,17 @@ function main() {
   //let mapi = 'xxx,xxxx,xxxxx,xxxx,xxx';
   //let mapi = 'xxx,xxxx,xxx';
   //let mapi = 'xxxx,xxxxx,xxxx,xxxxx,xxxx';
-  let mapi = 'xxx,xxxx,xxxx,xxxx,xxx';
+  let mapi = 'xxx,xxxx,xxxxx,xxxx,xxxx,xxx,xx,xxx,xxxx,xxxxx';
   /*NEED TO FIX DIMENSIONS FOR let mapi = 'xxx,xxx,xxxx,xxxxx';*/
   let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
   let map = genMap(mapi, terraini);
-  map = getPortLocs(map).map;
+  let mapData = getPortLocs(map);
+  console.log(mapData.shores);
 
   io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
 
-    socket.emit('map', map);
+    socket.emit('map', mapData.map);
 
     //now that we have number of ports, we need to know where to place them
     //should be done serverside, may have to assume width 1000 and height 1000 and base off of locations
@@ -89,8 +90,9 @@ function getPortLocs(map) {
         thisCol.sea.push(0);
       }
 
-      if (row != firstRow && row != lastRow) {
+      //if (row != firstRow && row != lastRow) {
         //comparing to above row
+      if (row != firstRow) {
         if (col == firstCol) {
           if (currLen < lastLen) {
             //nothing added
@@ -116,7 +118,8 @@ function getPortLocs(map) {
             }
           }
         }
-
+      }
+      if (row != lastRow) {
         //comparing to below row
         if (col == firstCol) {
           if (currLen < nextLen) {
@@ -144,11 +147,11 @@ function getPortLocs(map) {
           }
         }
       }
-    
-
+      
+      shores += thisCol.sea.length;
     }
   }
-  return {map: map};//shores: shores, ports: Math.floor(shores/(10/3))};
+  return {map: map, shores: shores, ports: Math.floor(shores/(10/3))};
 }
 
 function genMap(map, terrain) {
