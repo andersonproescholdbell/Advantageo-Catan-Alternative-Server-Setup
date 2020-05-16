@@ -239,9 +239,9 @@ function redraw(map) {
   drawMap(coords, vawh.vertToVert, ctx);
 }
 
-function main(map) {
-  console.log(map);
-  redraw(map);
+function main(mapData) {
+  console.log(mapData.map);
+  redraw(mapData.map);
 
   let resizeTimer;
   window.onresize = function() {
@@ -265,9 +265,8 @@ socket.on('connect', () => {
   console.log('connected to server');
 });
 
-socket.on('map', (map) => {
-  window.map = map;
-  main(map);
+socket.on('mapData', (mapData) => {
+  main(mapData);
 });
 
 socket.on('disconnect', () => {

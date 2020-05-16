@@ -24,20 +24,12 @@ function main() {
   let mapi = 'xxx,xxxx,xxxxx,xxxx,xxxx,xxx,xx,xxx,xxxx,xxxxx';
   /*NEED TO FIX DIMENSIONS FOR let mapi = 'xxx,xxx,xxxx,xxxxx';*/
   let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
-  let map = genMap(mapi, terraini);
-  let mapData = getPortLocs(map);
-  console.log(mapData.shores);
+  let mapData = genMap(mapi, terraini);
 
   io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
 
-    socket.emit('map', mapData.map);
-
-    //now that we have number of ports, we need to know where to place them
-    //should be done serverside, may have to assume width 1000 and height 1000 and base off of locations
-    //to decide where ports go
-    
-    //map = placePorts(map);
+    socket.emit('mapData', mapData);
   
     socket.on('disconnect', () => {
       console.log(socket.id + ' disconnected.');
@@ -78,7 +70,6 @@ function getPortLocs(map) {
 
       let thisCol = map[row][col];
 
-      //always
       if (row == firstRow) {
         thisCol.sea.push(1,2);
       }else if (row == lastRow) {
@@ -90,64 +81,44 @@ function getPortLocs(map) {
         thisCol.sea.push(0);
       }
 
-      //if (row != firstRow && row != lastRow) {
-        //comparing to above row
       if (row != firstRow) {
         if (col == firstCol) {
-          if (currLen < lastLen) {
-            //nothing added
-          }else if (currLen > lastLen) {
+          if (currLen > lastLen) {
             thisCol.sea.push(2);
           }else if (currLen == lastLen) {
             if (lastMove == 'sub') {
               thisCol.sea.push(2);
-            }else if (lastMove == 'add') {
-              //nothing added
             }
           }
         }else if (col == lastCol) {
-          if (currLen < lastLen) {
-            //nothing added
-          }else if (currLen > lastLen) {
+          if (currLen > lastLen) {
             thisCol.sea.push(1);
           }else if (currLen == lastLen) {
-            if (lastMove == 'sub') {
-              //nothing added
-            }else if (lastMove == 'add') {
+            if (lastMove == 'add') {
               thisCol.sea.push(1);
             }
           }
         }
       }
       if (row != lastRow) {
-        //comparing to below row
         if (col == firstCol) {
-          if (currLen < nextLen) {
-            //nothing added
-          }else if (currLen > nextLen) {
+          if (currLen > nextLen) {
             thisCol.sea.push(4);
           }else if (currLen == nextLen) {
             if (nextMove == 'add') {
               thisCol.sea.push(4);
-            }else if (nextMove == 'sub') {
-              //nothing added
             }
           }
         }else if (col == lastCol) {
-          if (currLen < nextLen) {
-            //nothing added
-          }else if (currLen > nextLen) {
+          if (currLen > nextLen) {
             thisCol.sea.push(5);
           }else if (currLen == nextLen) {
-            if (nextMove == 'add') {
-              //nothing added
-            }else if (nextMove == 'sub') {
+            if (nextMove == 'sub') {
               thisCol.sea.push(5);
             }
           }
         }
       }
-      
       shores += thisCol.sea.length;
     }
   }
@@ -180,5 +151,5 @@ function genMap(map, terrain) {
     map[map.length-1].push({terrain: 'x', sea: []});
   }
 
-  return map
+  return getPortLocs(map);
 }
