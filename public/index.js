@@ -1,11 +1,3 @@
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function offset(x) {
-  return Math.floor(x)+0.5;
-}
-
 function indexLongest(arr, last) {
   let max = arr[0].length;
   let maxIndex = 0;
@@ -28,14 +20,6 @@ function indexLongest(arr, last) {
   return maxIndex;
 }
 
-function getMapData(map) {
-  let mapData = {};
-  mapData.longest = indexLongest(map);
-  mapData.rows = map.length;
-  mapData.columns = map[mapData.longest].length;
-  return mapData;
-}
-
 function isExtraWide(map) {
   let longest = map[indexLongest(map)].length;
   let longestIndex = -1;
@@ -55,55 +39,52 @@ function isExtraWide(map) {
   return false
 }
 
-function getVertApoth(map, w, h) {
-  let mapData = getMapData(map);
-  let extraWide = isExtraWide(map);
+function rowShift(map) {
+  if (isExtraWide(map)) {
+    var shift = - (map[0].length-0.5);
+  }else {
+    var shift = - (map[0].length-1);
+  } 
 
-  if (w > h) {
-    //start off assuming height is limitting factor
-    var vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
-    var apothem = vertToVert/4 * Math.tan(Math.PI/3);
-
-    if (extraWide) {
-      var maxW = apothem + map[mapData.longest].length*2*apothem;
-      //only applies if 2 max ones are next to each other
+  let lastMove = 'none';
+  let shifts = [shift];
+  for (let row = 1; row < map.length; row++) { 
+    let lastLen = map[row-1].length;
+    if (map[row].length > lastLen) {
+      shift -= 1;
+      lastMove = 'sub';
+    }else if (map[row].length < lastLen) {
+      shift += 1;
+      lastMove = 'add';
     }else {
-      var maxW = map[mapData.longest].length*2*apothem;
-    }
-
-    if (maxW > w) { //width limitted
-      if (extraWide) {
-        apothem = w/(1+map[mapData.longest].length*2)
+      if (lastMove == 'add') {
+        shift -= 1;
+        lastMove = 'sub';
       }else {
-        apothem = w/(2*mapData.columns);
-      }
-      vertToVert = 4*apothem/Math.tan(Math.PI/3);
-      h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6); 
-    }else { //height limitted
-      w = maxW;
+        shift += 1;
+        lastMove = 'add';
+      }      
     }
-  }else { //width limitted
-    if (extraWide) {
-      var apothem = w/(1+map[mapData.longest].length*2)
-    }else {
-      var apothem = w/(2*mapData.columns);
-    }
-    var vertToVert = 4*apothem/Math.tan(Math.PI/3);
-    h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6);
+    shifts.push(shift);
   }
-  return {vertToVert: vertToVert*0.95, apothem: apothem*0.95, w: w, h: h};
+  return shifts;
 }
 
-function genCoords(map, vertToVert, apothem, w, h) {
+function genCoords(map, vertToVert, apothem, w, h, li, ri, rs) {
   let tip = apothem*Math.tan(Math.PI/6);
   
   let midx = w/2;
   let midy = h/2;
+  console.log()
+  
   if (isExtraWide(map)) {
     var left = midx - (map[0].length-0.5)*apothem;
   }else {
     var left = midx - (map[0].length-1)*apothem;
   } 
+  //console.log(rs[li], rs[ri]);
+  console.log(Math.abs(rs[li]-rs[ri]))
+  //left += apothem*(rs[li]-rs[ri]);
   if (map.length%2 == 0) {
     var top = midy + 1.5*tip - Math.floor(map.length/2)*apothem*Math.sqrt(3);
   }else {
@@ -194,6 +175,74 @@ function genCoords(map, vertToVert, apothem, w, h) {
   return coords;
 }
 
+function getDimensions(map, vertToVert, apothem, w, h) {
+  let tip = apothem*Math.tan(Math.PI/6);
+  
+  let midx = w/2;
+  let midy = h/2;
+  
+  if (isExtraWide(map)) {
+    var left = midx - (map[0].length-0.5)*apothem;
+  }else {
+    var left = midx - (map[0].length-1)*apothem;
+  } 
+  if (map.length%2 == 0) {
+    var top = midy + 1.5*tip - Math.floor(map.length/2)*apothem*Math.sqrt(3);
+  }else {
+    var top = midy - Math.floor(map.length/2)*apothem*Math.sqrt(3);
+  }
+  console.log(top);
+
+  let most = {l: w/2, r: w/2, t: h/2, b: h/2, li: 0, ri: 0};
+  let lastLen = map[0].length;
+  let lastMove = 'none';
+  for (let row = 0; row < map.length; row++) {
+    if (row != 0) {
+      if (map[row].length > lastLen) {
+        left -= apothem;
+        lastMove = 'sub';
+      }else if (map[row].length < lastLen) {
+        left += apothem;
+        lastMove = 'add';
+      }else {
+        if (lastMove == 'add') {
+          left -= apothem;
+          lastMove = 'sub';
+        }else {
+          left += apothem;
+          lastMove = 'add';
+        }      
+      }
+    }
+
+    for (let col = 0; col < map[row].length; col++) {
+      //centers
+      let cx = left + col*2*apothem;
+      let cy = top + row*apothem*Math.sqrt(3);
+      //mosts
+      if (cx < most.l) {
+        most.l = cx;
+        most.li = row;
+      }else if (cx > most.r) {
+        most.r = cx;
+        most.ri = row;
+      }
+      if (cy < most.t) {
+        most.t = cy;
+      }else if (cy > most.b) {
+        most.b = cy;
+      }
+    }
+    lastLen = map[row].length;
+  }
+  most.l -= apothem;
+  most.r += apothem;
+  most.t -= vertToVert/2;
+  most.b += vertToVert/2;
+  console.log(most);
+  return most;
+}
+
 function drawMap(coords, vertToVert, ctx) {
   let images = {tree: '/img/tree.svg', ore: '/img/ore.svg', water: '/img/water.svg', brick: '/img/brick.svg',
                 sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg'};
@@ -225,25 +274,34 @@ function drawMap(coords, vertToVert, ctx) {
   }
 }
 
+function newVertApoth(map) {
+  let vertToVert = window.innerHeight/map.length;
+  let apothem = vertToVert/2 * Math.sin(Math.PI/3);
+  return {v: vertToVert, a: apothem};
+}
+
 function redraw(map) {
   let can = document.getElementById('canvas');
   let ctx = can.getContext('2d');
-  let w = window.innerWidth;
-  let h = window.innerHeight;
+  
+  let va = newVertApoth(map);
+  let most = getDimensions(map, va.v, va.a, window.innerWidth, window.innerHeight);
+  can.width = most.r - most.l;
+  can.height = most.b - most.t;
 
-  let vawh = getVertApoth(map, w, h);
-  can.width = vawh.w;
-  can.height = vawh.h;
+  ctx.fillStyle = "lightblue";
+  ctx.fillRect(0, 0, can.width, can.height);
 
-  let coords = genCoords(map, vawh.vertToVert, vawh.apothem, vawh.w, vawh.h);
-  drawMap(coords, vawh.vertToVert, ctx);
+  let rs = rowShift(map);
+
+  let coords = genCoords(map, va.v, va.a, can.width, can.height, most.li, most.ri, rs);
+  drawMap(coords, va.v, ctx);
 }
 
 function main(mapData) {
-  console.log(mapData.map);
   redraw(mapData.map);
 
-  let resizeTimer;
+  /*let resizeTimer;
   window.onresize = function() {
     this.clearTimeout(resizeTimer);
     this.resizeTimer = setTimeout(doneResizing, 1000/60);
@@ -256,7 +314,7 @@ function main(mapData) {
       redraw(map);
       oldW = currW, oldH = currH;
     }
-  }
+  }*/
 }
 
 let socket = io();

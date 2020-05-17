@@ -445,3 +445,58 @@ function genCenters(map, can) {
       ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
   return [offset(nx), offset(ny)];
 }
+
+function getVertApoth(map, w, h) {
+  let mapData = getMapData(map);
+  let extraWide = isExtraWide(map);
+
+  if (w > h) {
+    //start off assuming height is limitting factor
+    var vertToVert = h/(mapData.rows-(0.25*(mapData.rows-1)));
+    var apothem = vertToVert/4 * Math.tan(Math.PI/3);
+
+    if (extraWide) {
+      var maxW = apothem + map[mapData.longest].length*2*apothem;
+      //only applies if 2 max ones are next to each other
+    }else {
+      var maxW = map[mapData.longest].length*2*apothem;
+    }
+
+    if (maxW > w) { //width limitted
+      if (extraWide) {
+        apothem = w/(1+map[mapData.longest].length*2)
+      }else {
+        apothem = w/(2*mapData.columns);
+      }
+      vertToVert = 4*apothem/Math.tan(Math.PI/3);
+      h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6); 
+    }else { //height limitted
+      w = maxW;
+    }
+  }else { //width limitted
+    if (extraWide) {
+      var apothem = w/(1+map[mapData.longest].length*2)
+    }else {
+      var apothem = w/(2*mapData.columns);
+    }
+    var vertToVert = 4*apothem/Math.tan(Math.PI/3);
+    h = map.length*vertToVert - (map.length-1)*apothem*Math.tan(Math.PI/6);
+  }
+  return {vertToVert: vertToVert*0.95, apothem: apothem*0.95, w: w, h: h};
+}
+
+function getMapData(map) {
+  let mapData = {};
+  mapData.longest = indexLongest(map);
+  mapData.rows = map.length;
+  mapData.columns = map[mapData.longest].length;
+  return mapData;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function offset(x) {
+  return Math.floor(x)+0.5;
+}
