@@ -165,7 +165,7 @@ function getCoords(map, shifts, vertToVert, apothem, longest) {
 }
 
 function drawMap(map, coords, vertToVert, ctx) {
-  let images = {tree: '/img/tree.svg', ore: '/img/ore.svg', water: '/img/water.svg', brick: '/img/brick.svg',
+  let images = {tree: '/img/forest.svg', ore: '/img/stone.svg', water: '/img/water.svg', brick: '/img/brick.svg',
                 sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg'};
   
   for (let i = 0; i < coords.centers.length; i++) {
@@ -196,6 +196,7 @@ function drawMap(map, coords, vertToVert, ctx) {
 }
 
 function main(mapData) {
+  console.log(mapData.map);
   let posData = getPositioning(mapData.map);
   let whva = getWHVA(mapData.map, posData.shifts, posData.longestIndex);
 

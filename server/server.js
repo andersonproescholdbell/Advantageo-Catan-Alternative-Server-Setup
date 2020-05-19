@@ -21,9 +21,9 @@ function main() {
   //let mapi = 'xxx,xxxx,xxxxx,xxxx,xxx';
   //let mapi = 'xxx,xxxx,xxx';
   //let mapi = 'xxxx,xxxxx,xxxx,xxxxx,xxxx';
-  //let mapi = 'xxxxx,xxxx,xxxxx,xxxxxx,xxxxxx,xxxxx,xxxx';
+  let mapi = 'xxxxx,xxxx,xxxxx,xxxxxx,xxxxxx'//,xxxxx,xxxx,xxx,xx,x,xx,xxx,xxxx';
   //let mapi = 'xxx,xxx,xxxx,xxxx';
-  let mapi = 'xxxx,xxxxx,xxxx,xxx,xxxx,xxxxx,xxxx';
+  //let mapi = 'xxxx,xxxxx,xxxx,xxx,xxxx,xxxxx,xxxx';
   let terraini = 't,t,t,t,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',t,t,s,s,w,w,o,o,b,b,d,d,b,b,b,b,b,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o';
   let mapData = genMap(mapi, terraini);
 
