@@ -1,112 +1,17 @@
-function indexLongest(arr, last) {
-  let max = arr[0].length;
-  let maxIndex = 0;
-
-  if (last) {
-    for (let i = 1; i < arr.length; i++) {
-      if (arr[i].length >= max) {
-        maxIndex = i;
-        max = arr[i].length;
-      }
-    }
-  }else {
-    for (let i = 1; i < arr.length; i++) {
-      if (arr[i].length > max) {
-        maxIndex = i;
-        max = arr[i].length;
-      }
-    }
-  }
-  return maxIndex;
-}
-
-function getPositioning(map) {
-   function getShifts(map, longest, start, end, backwards) {
-    let lastLen = longest;
-    let lastMove = 'none';
-    let shift = 0;
-    let shifts = [];
-    if (backwards) {
-      for (let row = start; row > end; row--) {
-        if (map[row].length > lastLen) {
-          shift -= 1;
-          lastMove = 'sub';
-        }else if (map[row].length < lastLen) {
-          shift += 1;
-          lastMove = 'add';
-        }else {
-          if (lastMove == 'add') {
-            shift -= 1;
-            lastMove = 'sub';
-          }else {
-            shift += 1;
-            lastMove = 'add';
-          }    
-        }
-        lastLen = map[row].length;
-        shifts.push(shift);
-      }
-    }else {
-      for (let row = start; row < end; row++) {
-        if (map[row].length > lastLen) {
-          shift -= 1;
-          lastMove = 'sub';
-        }else if (map[row].length < lastLen) {
-          shift += 1;
-          lastMove = 'add';
-        }else {
-          if (lastMove == 'add') {
-            shift -= 1;
-            lastMove = 'sub';
-          }else {
-            shift += 1;
-            lastMove = 'add';
-          }      
-        }
-        lastLen = map[row].length;
-        shifts.push(shift);
-      }
-    }
-    return shifts;
-  }
-
-  let lastLongest = indexLongest(map, true);
-  let top = getShifts(map, map[lastLongest].length, lastLongest-1, -1, true).reverse();
-  top.push(0);
-  let bottom = getShifts(map, map[lastLongest].length, lastLongest+1, map.length, false);
-  return {shifts: top.concat(bottom), longestIndex: lastLongest};
-}
-
-function getWHVA(map, shifts, longestIndex) {
-  let h1 = window.innerHeight;//*0.9;
-  let vertToVert = h1/(map.length-(0.25*(map.length-1)));
-  let apothem = vertToVert/2 * Math.sin(Math.PI/3);
-
-  let longest = map[longestIndex].length;
-  let widthShift = longest*2;
-  for (let i = 0; i < shifts.length; i++) {
-    let y = Math.abs(shifts[i]) + map[i].length*2;
-    if (y > longest*2 && y > widthShift) {
-      widthShift = y;
-    }
-  }
-  let w = widthShift*apothem;
-  let h = h1*1.004;
-  return {w: w, h: h, v: vertToVert, a: apothem};
-}
-
-function getCoords(map, shifts, vertToVert, apothem, longest) {
+function getCoords(map, vertToVert, apothem) {
   let coords = {centers: [], edges: [], vertices: []};
   let lastLen = map[0].length;
-  let initialDisplacement = 0;
-  let top = vertToVert/2;
   for (let row = 0; row < map.length; row++) {
-    let left = initialDisplacement + apothem + shifts[row]*apothem;
+    let top = vertToVert/2;
+    let left = apothem;
+    if (map[row][0].terrain == '_') {
+      left = 0;
+    }
     for (let col = 0; col < map[row].length; col++) {
       //used multiple times
       let acp3 = apothem*Math.cos(Math.PI/3);
       let asp3 = apothem*Math.sin(Math.PI/3);
-      //centers
+      //centers 
       let cx = left + col*2*apothem;
       let cy = top + row*apothem*Math.sqrt(3);
       coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain});
@@ -165,8 +70,10 @@ function getCoords(map, shifts, vertToVert, apothem, longest) {
 }
 
 function drawMap(map, coords, vertToVert, ctx) {
-  let images = {tree: '/img/forest.svg', ore: '/img/stone.svg', water: '/img/water.svg', brick: '/img/brick.svg',
-                sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg'};
+  let images = {forest: '/img/forest.svg', stone: '/img/stone.svg', water: '/img/water.svg', brick: '/img/brick.svg',
+                sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg',
+                port3to1: '/img/3to1port.svg', brickport: '/img/brickport.svg', lumberport: '/img/lumberport.svg',
+                stoneport: '/img/stoneport.svg', wheatport: '/img/wheatport.svg', woolport: '/img/woolport.svg'};
   
   for (let i = 0; i < coords.centers.length; i++) {
     let x = coords.centers[i].x;
@@ -177,36 +84,81 @@ function drawMap(map, coords, vertToVert, ctx) {
       ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), this.width/(sF*0.98), this.height/(sF*0.98));
     };
     let terrain = coords.centers[i].terrain;
-    if (terrain == 't') {
-      img.src = images.tree;
-    } else if (terrain == 's') {
+    if (terrain == 'f') {
+      img.src = images.forest;
+    }else if (terrain == 's') {
       img.src = images.sheep;
-    } else if (terrain == 'w') {
+    }else if (terrain == 'w') {
       img.src = images.wheat;
-    } else if (terrain == 'o') {
-      img.src = images.ore;
-    } else if (terrain == 'b') {
+    }else if (terrain == 'o') {
+      img.src = images.stone;
+    }else if (terrain == 'b') {
       img.src = images.brick;
-    } else if (terrain == 'd') {
+    }else if (terrain == 'd') {
       img.src = images.desert;
-    } else if (terrain == 'x') {
+    }else if (terrain == 'x') {
       img.src = images.water;
+    }else if (terrain[0] == 'p') {
+      img.src = images.water;
+
+      let x2 = coords.centers[i].x;
+      let y2 = coords.centers[i].y;
+      let img2 = new Image;
+      img2.onload = function(){
+        let sF = 1.75*this.height/vertToVert;
+        ctx.drawImage(this, x2 - this.width/(2*sF), y2 - this.height/(2*sF), this.width/(sF*0.98), this.height/(sF*0.98));
+      };
+      if (terrain == 'pf') {
+        img2.src = images.lumberport;
+      }else if (terrain == 'ps') {
+        img2.src = images.woolport;
+      }else if (terrain == 'po') {
+        img2.src = images.stoneport;
+      }else if (terrain == 'pb') {
+        img2.src = images.brickport;
+      }else if (terrain == 'pw') {
+        img2.src = images.wheatport;
+      }else if (terrain == 'p3') {
+        img2.src = images.port3to1;
+      }
     }
   }
 }
 
-function main(mapData) {
-  console.log(mapData.map);
-  let posData = getPositioning(mapData.map);
-  let whva = getWHVA(mapData.map, posData.shifts, posData.longestIndex);
+function getWHVA(map) {
+  let widest = 0;
+  for (let row = 0; row < map.length; row++) {
+    let isWidest = 0;
+    for (let col = 0; col < map[row].length; col++) {
+      if (map[row][col].terrain == '_') {
+        isWidest += 1;
+      }else {
+        isWidest += 2;
+      }
+    }
+    if (isWidest > widest) {
+      widest = isWidest;
+    }
+  }
+  let h = window.innerHeight;
+  let vertToVert = h/(map.length-(0.25*(map.length-1)));
+  let apothem = vertToVert/2 * Math.sin(Math.PI/3);
+  let w = widest*apothem;
+  return {h: h, w:w, vtv: vertToVert, apoth: apothem};
+}
+
+function main(map) {
+  console.log(map);
+  let whva = getWHVA(map);
 
   let can = document.getElementById('canvas');
   let ctx = can.getContext('2d');
   can.width = whva.w;
   can.height = whva.h;
 
-  let coords = getCoords(mapData.map, posData.shifts, whva.v, whva.a, mapData.map[posData.longestIndex].length);
-  drawMap(mapData.map, coords, whva.v, ctx);
+  let coords = getCoords(map, whva.vtv, whva.apoth);
+  console.log(coords);
+  drawMap(map, coords, whva.vtv, ctx);
 }
 
 
@@ -216,8 +168,8 @@ socket.on('connect', () => {
   console.log('connected to server');
 });
 
-socket.on('mapData', (mapData) => {
-  main(mapData);
+socket.on('map', (map) => {
+  main(map);
 });
 
 socket.on('disconnect', () => {

@@ -787,3 +787,403 @@ function offset(x) {
     let coords = genCoords(map, va.v, va.a, can.width, can.height, most.li, most.ri, rs);
     drawMap(coords, va.v, ctx);
   }
+
+  function indexLongest(arr, last) {
+    let max = arr[0].length;
+    let maxIndex = 0;
+  
+    if (last) {
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i].length >= max) {
+          maxIndex = i;
+          max = arr[i].length;
+        }
+      }
+    }else {
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i].length > max) {
+          maxIndex = i;
+          max = arr[i].length;
+        }
+      }
+    }
+    return maxIndex;
+  }
+  
+  function getPositioning(map) {
+     function getShifts(map, longest, start, end, backwards) {
+      let lastLen = longest;
+      let lastMove = 'none';
+      let shift = 0;
+      let shifts = [];
+      if (backwards) {
+        for (let row = start; row > end; row--) {
+          if (map[row].length > lastLen) {
+            shift -= 1;
+            lastMove = 'sub';
+          }else if (map[row].length < lastLen) {
+            shift += 1;
+            lastMove = 'add';
+          }else {
+            if (lastMove == 'add') {
+              shift -= 1;
+              lastMove = 'sub';
+            }else {
+              shift += 1;
+              lastMove = 'add';
+            }    
+          }
+          lastLen = map[row].length;
+          shifts.push(shift);
+        }
+      }else {
+        for (let row = start; row < end; row++) {
+          if (map[row].length > lastLen) {
+            shift -= 1;
+            lastMove = 'sub';
+          }else if (map[row].length < lastLen) {
+            shift += 1;
+            lastMove = 'add';
+          }else {
+            if (lastMove == 'add') {
+              shift -= 1;
+              lastMove = 'sub';
+            }else {
+              shift += 1;
+              lastMove = 'add';
+            }      
+          }
+          lastLen = map[row].length;
+          shifts.push(shift);
+        }
+      }
+      return shifts;
+    }
+  
+    let lastLongest = indexLongest(map, true);
+    let top = getShifts(map, map[lastLongest].length, lastLongest-1, -1, true).reverse();
+    top.push(0);
+    let bottom = getShifts(map, map[lastLongest].length, lastLongest+1, map.length, false);
+    return {shifts: top.concat(bottom), longestIndex: lastLongest};
+  }
+  
+  function getWHVA(map, shifts, longestIndex) {
+    let h1 = window.innerHeight;//*0.9;
+    let vertToVert = h1/(map.length-(0.25*(map.length-1)));
+    let apothem = vertToVert/2 * Math.sin(Math.PI/3);
+  
+    let longest = map[longestIndex].length;
+    let widthShift = longest*2;
+    for (let i = 0; i < shifts.length; i++) {
+      let y = Math.abs(shifts[i]) + map[i].length*2;
+      if (y > longest*2 && y > widthShift) {
+        widthShift = y;
+      }
+    }
+    let w = widthShift*apothem;
+    let h = h1*1.004;
+    return {w: w, h: h, v: vertToVert, a: apothem};
+  }
+  
+  function getCoords2(map, shifts, vertToVert, apothem, longest) {
+    let coords = {centers: [], edges: [], vertices: []};
+    let lastLen = map[0].length;
+    let initialDisplacement = 0;
+    let top = vertToVert/2;
+    for (let row = 0; row < map.length; row++) {
+      let left = initialDisplacement + apothem + shifts[row]*apothem;
+      for (let col = 0; col < map[row].length; col++) {
+        //used multiple times
+        let acp3 = apothem*Math.cos(Math.PI/3);
+        let asp3 = apothem*Math.sin(Math.PI/3);
+        //centers
+        let cx = left + col*2*apothem;
+        let cy = top + row*apothem*Math.sqrt(3);
+        coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain});
+        //edges
+        let ebl = {x: cx - acp3, y: cy + asp3};
+        let ebr = {x: cx + acp3, y: cy + asp3};
+        let er = {x: cx + apothem, y: cy};
+        coords.edges.push(ebl, ebr, er);
+        //vertices
+        let vbl = {x: cx - apothem, y: cy + apothem/2};
+        let vb = {x: cx, y: cy + vertToVert/2};
+        coords.vertices.push(vbl, vb);
+        if (row == 0) {
+          //edges
+          let etl = {x: cx - acp3, y: cy - asp3};
+          let etr = {x: cx + acp3, y: cy - asp3};
+          coords.edges.push(etl, etr);
+          //vertices 
+          let vtl = {x: cx - apothem, y: cy - apothem/2};
+          let vt = {x: cx, y: cy - vertToVert/2};
+          coords.vertices.push(vtl, vt);
+          if (col == map[row].length-1) {
+            let vtr = {x: cx + apothem, y: cy - apothem/2};
+            coords.vertices.push(vtr);
+          }
+        }
+        if (col == 0) {
+          //edges
+          let el = {x: cx - apothem, y: cy};
+          coords.edges.push(el);
+          if (lastLen < map[row].length) {
+            //edges
+            let etl = {x: cx - acp3, y: cy - asp3};
+            coords.edges.push(etl);
+            //vertices
+            let vtl = {x: cx - apothem, y: cy - apothem/2};
+            coords.vertices.push(vtl);
+          }
+        }else if (col == map[row].length-1) {
+          //vertices
+          let vbr = {x: cx + apothem , y: cy + apothem/2}
+          coords.vertices.push(vbr);
+          if (lastLen < map[row].length) {
+            //edges
+            let etr = {x: cx + acp3, y: cy - asp3};
+            coords.edges.push(etr);
+            //vertices
+            let vtr = {x: cx + apothem, y: cy - apothem/2};
+            coords.vertices.push(vtr);
+          }
+        }  
+      }
+      lastLen = map[row].length;
+    }
+    return coords;
+  }
+/*let posData = getPositioning(mapData.map);
+  let whva = getWHVA(mapData.map, posData.shifts, posData.longestIndex);
+
+  let can = document.getElementById('canvas');
+  let ctx = can.getContext('2d');
+  can.width = whva.w;
+  can.height = whva.h;
+
+  let coords = getCoords(mapData.map, posData.shifts, whva.v, whva.a, mapData.map[posData.longestIndex].length);
+  drawMap(mapData.map, coords, whva.v, ctx);*/
+
+  function getPortLocs2(map) {
+    function subAdd(map, row, lastLen) {
+      if (map[row].length > lastLen) {
+        return 'sub';
+      }else if (map[row].length < lastLen) {
+        return 'add';
+      }else {
+        if (lastMove == 'add') {
+          return 'sub';
+        }else {
+          return 'add';
+        }      
+      }
+    }
+  
+    let shores = 0;
+    let lastMove = 'none';
+    for (let row = 1; row < map.length-1; row++) {
+      let lastLen = map[row-1].length;
+      let currLen = map[row].length;
+      let nextLen = map[row+1].length;
+  
+      lastMove = subAdd(map, row, lastLen, lastMove);
+      let nextMove = subAdd(map, row+1, map[row].length, lastMove);
+  
+      let firstRow = 1;
+      let lastRow = map.length-2;
+      for (let col = 1; col < map[row].length-1; col++) {
+        let firstCol = 1;
+        let lastCol = map[row].length-2; 
+  
+        let thisCol = map[row][col];
+  
+        if (row == firstRow) {
+          thisCol.sea.push(1,2);
+        }else if (row == lastRow) {
+          thisCol.sea.push(4,5);
+        }
+        if (col == firstCol) {
+          thisCol.sea.push(3);
+        }else if (col == lastCol) {
+          thisCol.sea.push(0);
+        }
+  
+        if (row != firstRow) {
+          if (col == firstCol) {
+            if (currLen > lastLen) {
+              thisCol.sea.push(2);
+            }else if (currLen == lastLen) {
+              if (lastMove == 'sub') {
+                thisCol.sea.push(2);
+              }
+            }
+          }else if (col == lastCol) {
+            if (currLen > lastLen) {
+              thisCol.sea.push(1);
+            }else if (currLen == lastLen) {
+              if (lastMove == 'add') {
+                thisCol.sea.push(1);
+              }
+            }
+          }
+        }
+        if (row != lastRow) {
+          if (col == firstCol) {
+            if (currLen > nextLen) {
+              thisCol.sea.push(4);
+            }else if (currLen == nextLen) {
+              if (nextMove == 'add') {
+                thisCol.sea.push(4);
+              }
+            }
+          }else if (col == lastCol) {
+            if (currLen > nextLen) {
+              thisCol.sea.push(5);
+            }else if (currLen == nextLen) {
+              if (nextMove == 'sub') {
+                thisCol.sea.push(5);
+              }
+            }
+          }
+        }
+        shores += thisCol.sea.length;
+      }
+    }
+    return {map: map, shores: shores, ports: Math.floor(shores/(10/3))};
+  }
+
+  function getRowLength(row) {
+    let length = 0;
+    for (let col = 0; col < row.length; col++) {
+      if (row[col].terrain != '_' && row[col].terrain != '-' && row[col].terrain != 'x') {
+        length++;
+      }
+    }
+    return length;
+  }
+  
+  function getPortLocs(map) {
+    for (let row = 1; row < map.length-1; row++) {
+      let lastLen = getRowLength(map[row-1]);
+      let thisLen = getRowLength(map[row]);
+      let nextLen = getRowLength(map[row+1]);
+      for (let col = 1; col < map[row].length-1; col++) {
+        if (map[row][col].terrain != '_' && map[row][col].terrain != '-' && map[row][col].terrain != 'x') {
+          if (row == 1) {
+            map[row][col].seaBorder.push(1,2);
+            if (map[row][col-1].terrain == 'x') {
+              if (nextLen > thisLen) {
+                map[row][col].seaBorder.push(3);
+              }else if (nextLen < thisLen) {
+                map[row][col].seaBorder.push(3,4);
+              }else if (nextLen == thisLen) {
+  
+              }
+            }else if (map[row][col+1].terrain == 'x') {
+              if (nextLen > thisLen) {
+                map[row][col].seaBorder.push(0);
+              }else if (nextLen < thisLen) {
+                map[row][col].seaBorder.push(0,5);
+              }else if (nextLen == thisLen) {
+  
+              }
+            } 
+          }else if (row == map.length-2) {
+            map[row][col].seaBorder.push(4,5);
+            if (map[row][col-1].terrain == 'x') {
+              if (lastLen > thisLen) {
+                map[row][col].seaBorder.push(3);
+              }else if (lastLen < thisLen) {
+                map[row][col].seaBorder.push(2,3);
+              }else if (lastLen == thisLen) {
+  
+              }
+            }else if (map[row][col+1].terrain == 'x') {
+              if (lastLen > thisLen) {
+                map[row][col].seaBorder.push(0);
+              }else if (lastLen < thisLen) {
+                map[row][col].seaBorder.push(1,0);
+              }else if (lastLen == thisLen) {
+  
+              }
+            }
+          }else if (map[row][col-1].terrain == 'x') {
+            map[row][col].seaBorder.push(3);
+            if (lastLen > thisLen && nextLen > thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen > thisLen && nextLen == thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen > thisLen && nextLen < thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen == thisLen && nextLen > thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen == thisLen && nextLen == thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen == thisLen && nextLen < thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen < thisLen && nextLen > thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen < thisLen && nextLen == thisLen) {
+              map[row][col].seaBorder.push();
+            }else if (lastLen < thisLen && nextLen < thisLen) {
+              map[row][col].seaBorder.push();
+            }
+          }else if (map[row][col+1] == 'w') {
+    
+          }
+        }
+      }
+    }
+    return map;
+  }
+
+  function genMap(map, terrain) {
+    map = map.split(',');
+    terrain = terrain.split(',');
+    
+    for (let row = 0; row < map.length; row++) {
+      map[row] = map[row].split('');
+      for (let col = 0; col < map[row].length; col++) {
+        if (map[row][col] != '_' && map[row][col] != '-' && map[row][col] != 'w') {
+          let terrainIndex = Math.floor(Math.random() * terrain.length);
+          map[row][col] = {terrain: terrain[terrainIndex], seaBorder: []};
+          terrain.splice(terrainIndex, 1);
+        }else {
+          if (map[row][col] == 'w') {
+            map[row][col] = {terrain: 'x'};
+          }else {
+            map[row][col] = {terrain: map[row][col]};
+          }
+        }
+      }
+    }
+    return getPortLocs(map);
+  }
+
+  let portLocs = spacedArr(0, shores-1, Math.floor(shores/(10/3))-1);
+  for (let row = 0; row < map.length; row++) {
+    for (let col = 0; col < map[row].length; col++) {
+      if (map[row][col].terrain == 'x') {
+        if (!map[row][col].index) {
+          map[row][col].index = [];
+        }
+        if (row == 0) {
+
+        }else if (row == map.length-1) {
+
+        }else {
+          if (col )
+          map[row][col].index.push();
+        }
+      }
+    }
+  }
+
+  function spacedArr(startValue, stopValue, cardinality) {
+    var arr = [];
+    var step = (stopValue - startValue) / (cardinality - 1);
+    for (var i = 0; i < cardinality; i++) {
+      arr.push(Math.floor(startValue + (step * i)));
+    }
+    return arr;
+  }
