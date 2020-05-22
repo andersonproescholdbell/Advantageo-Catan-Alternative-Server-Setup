@@ -14,7 +14,11 @@ function getCoords(map, vertToVert, apothem) {
       //centers 
       let cx = left + col*2*apothem;
       let cy = top + row*apothem*Math.sqrt(3);
-      coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain});
+      if (map[row][col].roll) {
+        coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain, roll: map[row][col].roll});
+      }else {
+        coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain});
+      }
       //edges
       let ebl = {x: cx - acp3, y: cy + asp3};
       let ebr = {x: cx + acp3, y: cy + asp3};
@@ -69,60 +73,131 @@ function getCoords(map, vertToVert, apothem) {
   return coords;
 }
 
-function drawMap(map, coords, vertToVert, ctx) {
+function drawMap(coords, vertToVert, ctx, scale) {
   let images = {forest: '/img/forest.svg', stone: '/img/stone.svg', water: '/img/water.svg', brick: '/img/brick.svg',
-                sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg',
+                sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg', portramp: '/img/portramp.svg',
                 port3to1: '/img/3to1port.svg', brickport: '/img/brickport.svg', lumberport: '/img/lumberport.svg',
-                stoneport: '/img/stoneport.svg', wheatport: '/img/wheatport.svg', woolport: '/img/woolport.svg'};
+                stoneport: '/img/stoneport.svg', wheatport: '/img/wheatport.svg', woolport: '/img/woolport.svg',
+                roll2: '/img/roll2.svg', roll3: '/img/roll3.svg', roll4: '/img/roll4.svg', roll5: '/img/roll5.svg', 
+                roll6: '/img/roll6.svg', roll8: '/img/roll8.svg', roll9: '/img/roll9.svg', roll10: '/img/roll10.svg', 
+                roll11: '/img/roll11.svg', roll12: '/img/roll12.svg'};
   
+  let toDraw = [];
+  //tiles
   for (let i = 0; i < coords.centers.length; i++) {
-    let x = coords.centers[i].x;
-    let y = coords.centers[i].y;
-    let img = new Image;
-    img.onload = function(){
-      let sF = this.height/vertToVert;
-      ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), this.width/(sF*0.98), this.height/(sF*0.98));
-    };
+    let x = coords.centers[i].x * scale;
+    let y = coords.centers[i].y * scale;
+    let tile = new Image;
+    /*tile.onload = function(){
+      let sF = this.height/(vertToVert*scale);
+      ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
+    };*/
     let terrain = coords.centers[i].terrain;
     if (terrain == 'f') {
-      img.src = images.forest;
+      tile.src = images.forest;
     }else if (terrain == 's') {
-      img.src = images.sheep;
+      tile.src = images.sheep;
     }else if (terrain == 'w') {
-      img.src = images.wheat;
+      tile.src = images.wheat;
     }else if (terrain == 'o') {
-      img.src = images.stone;
+      tile.src = images.stone;
     }else if (terrain == 'b') {
-      img.src = images.brick;
+      tile.src = images.brick;
     }else if (terrain == 'd') {
-      img.src = images.desert;
-    }else if (terrain == 'x') {
-      img.src = images.water;
-    }else if (terrain[0] == 'p') {
-      img.src = images.water;
-
-      let x2 = coords.centers[i].x;
-      let y2 = coords.centers[i].y;
-      let img2 = new Image;
-      img2.onload = function(){
-        let sF = 1.75*this.height/vertToVert;
-        ctx.drawImage(this, x2 - this.width/(2*sF), y2 - this.height/(2*sF), this.width/(sF*0.98), this.height/(sF*0.98));
-      };
+      tile.src = images.desert;
+    }else if (terrain == 'x' || terrain[0] == 'p') {
+      tile.src = images.water;
+    }
+    //let sF = 600/(vertToVert*scale);
+    //toDraw.push({x: x - 520/(2*sF), y: y - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF, source: tile.src});
+  }
+  //ports and planks
+  for (let i = 0; i < coords.centers.length; i++) {
+    let terrain = coords.centers[i].terrain;
+    if (terrain[0] == 'p') {
+      let x = coords.centers[i].x * scale;
+      let y = coords.centers[i].y * scale;
+      let port = new Image;
+      /*port.onload = function(){
+        let sF = 1.75*this.height/(vertToVert*scale);
+        ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
+      };*/
       if (terrain == 'pf') {
-        img2.src = images.lumberport;
+        port.src = images.lumberport;
       }else if (terrain == 'ps') {
-        img2.src = images.woolport;
+        port.src = images.woolport;
       }else if (terrain == 'po') {
-        img2.src = images.stoneport;
+        port.src = images.stoneport;
       }else if (terrain == 'pb') {
-        img2.src = images.brickport;
+        port.src = images.brickport;
       }else if (terrain == 'pw') {
-        img2.src = images.wheatport;
+        port.src = images.wheatport;
       }else if (terrain == 'p3') {
-        img2.src = images.port3to1;
+        port.src = images.port3to1;
+      }
+      //let sF = 1.75*600/(vertToVert*scale);
+      //toDraw.push({x: x - 520/(2*sF), y: y - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF, source: port.src});
+
+      //console.log(x, y);
+      //console.log(getClosest(coords, 'edges', x, y));
+      /*x = 1;
+      y = 1;
+      img.onload = function(){
+        let sF = 1.75*this.height/(vertToVert*scale);
+        ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
+      };
+      img.src = images.portramp;*/
+    }
+  }
+
+  function afterLoad(toDraw, loaded) {
+    if (loaded == toDraw.length) {
+      for (let i = 0; i < toDraw.length; i++) {
+        ctx.drawImage(toDraw[i].img, toDraw[i].x, toDraw[i].y, toDraw[i].w, toDraw[i].h);
       }
     }
   }
+
+  //rolls
+  let loaded = 0;
+  for (let i = 0; i < coords.centers.length; i++) {
+    if (coords.centers[i].roll) {
+      let x3 = coords.centers[i].x * scale;
+      let y3 = (coords.centers[i].y - vertToVert/4) * scale;
+      let roll = new Image();
+      //roll.onload = ()=> {
+        //let sF = 4*this.height/(vertToVert*scale);
+        //ctx.drawImage(this, x3 - this.width/(2*sF), y3 - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
+      //};
+      roll.src = '/img/water.svg';
+      roll.onload = function() {
+        loaded++;
+        afterLoad(toDraw, loaded);
+      }
+      let sF = 4*600/(vertToVert*scale);
+      toDraw.push({img: roll, x: x3 - 520/(2*sF), y: y3 - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF});
+    }
+  }
+
+  console.log(toDraw);
+  console.log(loaded);
+}
+
+function getClosest(coords, type, x, y) {
+  let closest = [];
+  let closestDist = 9999;
+  for (let i = 0; i < coords[type].length; i++) {
+    let dist = getDist(x, y, coords[type][i].x, coords[type][i].y);
+    if (dist < closestDist*1.02) {
+      if (dist > closestDist*0.98) {
+        closest.push(coords[type][i]);
+      }else {
+        closest = [coords[type][i]];
+        closestDist = dist;
+      }
+    }
+  }
+  return closest;
 }
 
 function getWHVA(map) {
@@ -147,18 +222,36 @@ function getWHVA(map) {
   return {h: h, w:w, vtv: vertToVert, apoth: apothem};
 }
 
+function getMousePos(canvasDom, mouseEvent, scale) {
+  var rect = canvasDom.getBoundingClientRect();
+  return {
+    x: (mouseEvent.clientX - rect.left) * scale,
+    y: (mouseEvent.clientY - rect.top) * scale
+  };
+}
+
+function getDist(x1, y1, x2, y2) {
+  return Math.sqrt((x1-x2)**2 + (y1-y2)**2);
+}
+
 function main(map) {
   console.log(map);
   let whva = getWHVA(map);
 
   let can = document.getElementById('canvas');
   let ctx = can.getContext('2d');
-  can.width = whva.w;
-  can.height = whva.h;
+  let scale = 2;
+  can.width = whva.w * scale ;
+  can.height = whva.h * scale;
+
+  can.addEventListener('click', function (e) {
+    let mousePos = getMousePos(can, e, scale);
+    //console.log(mousePos);
+  });
 
   let coords = getCoords(map, whva.vtv, whva.apoth);
   console.log(coords);
-  drawMap(map, coords, whva.vtv, ctx);
+  drawMap(coords, whva.vtv, ctx, scale);
 }
 
 

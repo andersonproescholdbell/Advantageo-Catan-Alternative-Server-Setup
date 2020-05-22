@@ -1187,3 +1187,18 @@ function offset(x) {
     }
     return arr;
   }
+
+  function drawIMG(source, x, y, vertToVert) {
+    let img = new Image;
+    img.onload = function() {
+      //console.log(this.height);
+      //console.log(vertToVert);
+      let sF = vertToVert/this.height;
+      img.width = 1.01*this.width*sF;
+      img.style.top = y - this.width/2 + 'px';
+      img.style.left = x - this.height/2 + 'px';
+    }
+    img.style.position = 'absolute';
+    img.src = source;
+    document.getElementById('images').appendChild(img);
+  }

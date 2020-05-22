@@ -17,12 +17,13 @@ server.listen(port, () => {
 });
 
 function main() {
-  //let map = '_-wwww,-wlllw,_wllllw,wlllllw,_wllllw,-wlllw,_-wwww';
-  let map = '--wwwww,_-wllllw,-wlllllw,_wllllllw,wllllllw,_wlllllw,-wllllw,_-wwwww';
+  let map = '_-wwww,-wlllw,_wllllw,wlllllw,_wllllw,-wlllw,_-wwww';
+  //let map = '--wwwww,_-wllllw,-wlllllw,_wllllllw,wllllllw,_wlllllw,-wllllw,_-wwwww';
   //let map = '--wwww,_-wlllw,-wllllw,_wlllllw,wllllllw,_wlllllw,-wllllw,_-wlllw,--wwww';
   let terrain = 'f,f,f,f,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'+',f,f,s,s,w,w,o,o,b,b,d';
   let ports = 'fsobw3333';
-  map = genMap(map, terrain, ports);
+  let rolls = '2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12';
+  map = genMap(map, terrain, ports, rolls);
 
   io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
@@ -35,10 +36,11 @@ function main() {
   });
 }
 
-function genMap(map, terrain, ports) {
+function genMap(map, terrain, ports, rolls) {
   map = map.split(',');
   ports = ports.split('');
   terrain = terrain.split(',');
+  rolls = rolls.split(',');
   
   let wInFirstRow = 0;
     {for (let i = 0; i < map[0].length; i++) {
@@ -56,6 +58,14 @@ function genMap(map, terrain, ports) {
         let terrainIndex = Math.floor(Math.random() * terrain.length);
         map[row][col] = {terrain: terrain[terrainIndex]};
         terrain.splice(terrainIndex, 1);
+        if (map[row][col].terrain != 'd') {
+          if (rolls.length == 0) {
+            rolls = '2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12'.split(',');
+          }
+          let rollIndex = Math.floor(Math.random() * rolls.length);
+          map[row][col].roll = rolls[rollIndex]
+          rolls.splice(rollIndex, 1);
+        }
       }else {
         if (map[row][col] == 'w') {
           if (ports.length == 0) {
