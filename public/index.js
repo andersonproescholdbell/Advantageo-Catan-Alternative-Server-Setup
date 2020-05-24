@@ -74,6 +74,14 @@ function getCoords(map, vertToVert, apothem) {
 }
 
 function drawMap(coords, vertToVert, ctx, scale) {
+  function afterLoad(toDraw, loaded) {
+    if (loaded == toDraw.length) {
+      for (let i = 0; i < toDraw.length; i++) {
+        ctx.drawImage(toDraw[i].img, toDraw[i].x, toDraw[i].y, toDraw[i].w, toDraw[i].h);
+      }
+    }
+  }
+
   let images = {forest: '/img/forest.svg', stone: '/img/stone.svg', water: '/img/water.svg', brick: '/img/brick.svg',
                 sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg', portramp: '/img/portramp.svg',
                 port3to1: '/img/3to1port.svg', brickport: '/img/brickport.svg', lumberport: '/img/lumberport.svg',
@@ -81,35 +89,38 @@ function drawMap(coords, vertToVert, ctx, scale) {
                 roll2: '/img/roll2.svg', roll3: '/img/roll3.svg', roll4: '/img/roll4.svg', roll5: '/img/roll5.svg', 
                 roll6: '/img/roll6.svg', roll8: '/img/roll8.svg', roll9: '/img/roll9.svg', roll10: '/img/roll10.svg', 
                 roll11: '/img/roll11.svg', roll12: '/img/roll12.svg'};
-  
+      
   let toDraw = [];
   //tiles
   for (let i = 0; i < coords.centers.length; i++) {
     let x = coords.centers[i].x * scale;
     let y = coords.centers[i].y * scale;
-    let tile = new Image;
-    /*tile.onload = function(){
-      let sF = this.height/(vertToVert*scale);
-      ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
-    };*/
+    let sF = 600/(vertToVert*scale);
+
+    let img = new Image();
     let terrain = coords.centers[i].terrain;
     if (terrain == 'f') {
-      tile.src = images.forest;
+      img.src = images.forest;
     }else if (terrain == 's') {
-      tile.src = images.sheep;
+      img.src = images.sheep;
     }else if (terrain == 'w') {
-      tile.src = images.wheat;
+      img.src = images.wheat;
     }else if (terrain == 'o') {
-      tile.src = images.stone;
+      img.src = images.stone;
     }else if (terrain == 'b') {
-      tile.src = images.brick;
+      img.src = images.brick;
     }else if (terrain == 'd') {
-      tile.src = images.desert;
+      img.src = images.desert;
     }else if (terrain == 'x' || terrain[0] == 'p') {
-      tile.src = images.water;
+      img.src = images.water;
     }
-    //let sF = 600/(vertToVert*scale);
-    //toDraw.push({x: x - 520/(2*sF), y: y - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF, source: tile.src});
+    if (img.src) {
+      toDraw.push({img: img, x: x - 520/(2*sF), y: y - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF});
+      img.onload = function() {
+        loaded++;
+        afterLoad(toDraw, loaded);
+      }
+    }
   }
   //ports and planks
   for (let i = 0; i < coords.centers.length; i++) {
@@ -117,26 +128,27 @@ function drawMap(coords, vertToVert, ctx, scale) {
     if (terrain[0] == 'p') {
       let x = coords.centers[i].x * scale;
       let y = coords.centers[i].y * scale;
-      let port = new Image;
-      /*port.onload = function(){
-        let sF = 1.75*this.height/(vertToVert*scale);
-        ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
-      };*/
+      let sF = 1.75*600/(vertToVert*scale);
+      
+      let img = new Image();
       if (terrain == 'pf') {
-        port.src = images.lumberport;
+        img.src = images.lumberport;
       }else if (terrain == 'ps') {
-        port.src = images.woolport;
+        img.src = images.woolport;
       }else if (terrain == 'po') {
-        port.src = images.stoneport;
+        img.src = images.stoneport;
       }else if (terrain == 'pb') {
-        port.src = images.brickport;
+        img.src = images.brickport;
       }else if (terrain == 'pw') {
-        port.src = images.wheatport;
+        img.src = images.wheatport;
       }else if (terrain == 'p3') {
-        port.src = images.port3to1;
+        img.src = images.port3to1;
       }
-      //let sF = 1.75*600/(vertToVert*scale);
-      //toDraw.push({x: x - 520/(2*sF), y: y - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF, source: port.src});
+      toDraw.push({img: img, x: x - 1.01*520/(2*sF), y: y - 1.01*600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF});
+      img.onload = function() {
+        loaded++;
+        afterLoad(toDraw, loaded);
+      }
 
       //console.log(x, y);
       //console.log(getClosest(coords, 'edges', x, y));
@@ -149,38 +161,25 @@ function drawMap(coords, vertToVert, ctx, scale) {
       img.src = images.portramp;*/
     }
   }
-
-  function afterLoad(toDraw, loaded) {
-    if (loaded == toDraw.length) {
-      for (let i = 0; i < toDraw.length; i++) {
-        ctx.drawImage(toDraw[i].img, toDraw[i].x, toDraw[i].y, toDraw[i].w, toDraw[i].h);
-      }
-    }
-  }
-
   //rolls
   let loaded = 0;
   for (let i = 0; i < coords.centers.length; i++) {
-    if (coords.centers[i].roll) {
-      let x3 = coords.centers[i].x * scale;
-      let y3 = (coords.centers[i].y - vertToVert/4) * scale;
-      let roll = new Image();
-      //roll.onload = ()=> {
-        //let sF = 4*this.height/(vertToVert*scale);
-        //ctx.drawImage(this, x3 - this.width/(2*sF), y3 - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
-      //};
-      roll.src = '/img/water.svg';
-      roll.onload = function() {
+    let roll = coords.centers[i].roll;
+    if (roll) {
+      let x = coords.centers[i].x * scale;
+      let y = (coords.centers[i].y - vertToVert/4) * scale;
+
+      let img = new Image();
+      img.src = '/img/roll' + roll + '.svg';
+      let apothem = vertToVert/2 * Math.sin(Math.PI/3);
+      let sF = 1.5*520/(apothem*scale);
+      toDraw.push({img: img, x:  x - 1.5*400/(2*sF), y: y - 0.2*240/(2*sF), w: 1.5*400/sF, h: 1.5*240/sF});
+      img.onload = function() {
         loaded++;
         afterLoad(toDraw, loaded);
       }
-      let sF = 4*600/(vertToVert*scale);
-      toDraw.push({img: roll, x: x3 - 520/(2*sF), y: y3 - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF});
     }
   }
-
-  console.log(toDraw);
-  console.log(loaded);
 }
 
 function getClosest(coords, type, x, y) {
@@ -219,7 +218,7 @@ function getWHVA(map) {
   let vertToVert = h/(map.length-(0.25*(map.length-1)));
   let apothem = vertToVert/2 * Math.sin(Math.PI/3);
   let w = widest*apothem;
-  return {h: h, w:w, vtv: vertToVert, apoth: apothem};
+  return {h: h, w:w, vtv: vertToVert*0.99, apoth: apothem};
 }
 
 function getMousePos(canvasDom, mouseEvent, scale) {
