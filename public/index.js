@@ -16,6 +16,8 @@ function getCoords(map, vertToVert, apothem) {
       let cy = top + row*apothem*Math.sqrt(3);
       if (map[row][col].roll) {
         coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain, roll: map[row][col].roll});
+      }else if (map[row][col].plankLoc) {
+        coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain, plankLoc: map[row][col].plankLoc});
       }else {
         coords.centers.push({x: cx, y: cy, terrain: map[row][col].terrain});
       }
@@ -73,7 +75,7 @@ function getCoords(map, vertToVert, apothem) {
   return coords;
 }
 
-function drawMap(coords, vertToVert, ctx, scale) {
+function drawMap(coords, vertToVert, apothem, ctx, scale) {
   function afterLoad(toDraw, loaded) {
     if (loaded == toDraw.length) {
       for (let i = 0; i < toDraw.length; i++) {
@@ -82,8 +84,12 @@ function drawMap(coords, vertToVert, ctx, scale) {
     }
   }
 
-  let images = {forest: '/img/forest.svg', stone: '/img/stone.svg', water: '/img/water.svg', brick: '/img/brick.svg',
-                sheep: '/img/sheep.svg', wheat: '/img/wheat.svg', desert: '/img/desert.svg', portramp: '/img/portramp.svg',
+  let images = {forest: '/img/forest.svg', stone: '/img/stone.svg', water: '/img/water.svg',
+                brick: '/img/brick.svg', sheep: '/img/sheep.svg', wheat: '/img/wheat.svg',
+                desert: '/img/desert.svg',
+                portrampr: '/img/portrampr.svg', portrampl: '/img/portrampl.svg',
+                portrampbr: '/img/portrampbr.svg', portrampbl: '/img/portrampbl.svg',
+                portramptr: '/img/portramptr.svg', portramptl: '/img/portramptl.svg',
                 port3to1: '/img/3to1port.svg', brickport: '/img/brickport.svg', lumberport: '/img/lumberport.svg',
                 stoneport: '/img/stoneport.svg', wheatport: '/img/wheatport.svg', woolport: '/img/woolport.svg',
                 roll2: '/img/roll2.svg', roll3: '/img/roll3.svg', roll4: '/img/roll4.svg', roll5: '/img/roll5.svg', 
@@ -91,7 +97,7 @@ function drawMap(coords, vertToVert, ctx, scale) {
                 roll11: '/img/roll11.svg', roll12: '/img/roll12.svg'};
       
   let toDraw = [];
-  //tiles
+  //terrain
   for (let i = 0; i < coords.centers.length; i++) {
     let x = coords.centers[i].x * scale;
     let y = coords.centers[i].y * scale;
@@ -111,25 +117,41 @@ function drawMap(coords, vertToVert, ctx, scale) {
       img.src = images.brick;
     }else if (terrain == 'd') {
       img.src = images.desert;
-    }else if (terrain == 'x' || terrain[0] == 'p') {
+    }else if (terrain == 'x') {
       img.src = images.water;
+    }else if (terrain[0] == 'p') {
+      let plankLoc = coords.centers[i].plankLoc
+      if (plankLoc == 'r') {
+        img.src = images.portrampr;
+      }else if (plankLoc == 'l') {
+        img.src = images.portrampl;
+      }else if (plankLoc == 'br') {
+        img.src = images.portrampbr;
+      }else if (plankLoc == 'bl') {
+        img.src = images.portrampbl;
+      }else if (plankLoc == 'tr') {
+        img.src = images.portramptr;
+      }else if (plankLoc == 'tl') {
+        img.src = images.portramptl;
+      }
     }
     if (img.src) {
-      toDraw.push({img: img, x: x - 520/(2*sF), y: y - 600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF});
+      let w = img.width;
+      let h = img.height;
+      let l = 1.02;
+      toDraw.push({img: img, x: x - l*w/(2*sF), y: y - l*h/(2*sF), w: l*w/sF, h: l*h/sF});
       img.onload = function() {
         loaded++;
         afterLoad(toDraw, loaded);
       }
     }
   }
-  //ports and planks
+  //ports
   for (let i = 0; i < coords.centers.length; i++) {
     let terrain = coords.centers[i].terrain;
     if (terrain[0] == 'p') {
       let x = coords.centers[i].x * scale;
       let y = coords.centers[i].y * scale;
-      let sF = 1.75*600/(vertToVert*scale);
-      
       let img = new Image();
       if (terrain == 'pf') {
         img.src = images.lumberport;
@@ -144,21 +166,14 @@ function drawMap(coords, vertToVert, ctx, scale) {
       }else if (terrain == 'p3') {
         img.src = images.port3to1;
       }
-      toDraw.push({img: img, x: x - 1.01*520/(2*sF), y: y - 1.01*600/(2*sF), w: 1.01*520/sF, h: 1.01*600/sF});
+      let w = img.width;
+      let h = img.height;
+      let sF = 1.75*h/(vertToVert*scale);
+      toDraw.push({img: img, x: x - w/(2*sF), y: y - h/(2*sF), w: w/sF, h: h/sF});
       img.onload = function() {
         loaded++;
         afterLoad(toDraw, loaded);
       }
-
-      //console.log(x, y);
-      //console.log(getClosest(coords, 'edges', x, y));
-      /*x = 1;
-      y = 1;
-      img.onload = function(){
-        let sF = 1.75*this.height/(vertToVert*scale);
-        ctx.drawImage(this, x - this.width/(2*sF), y - this.height/(2*sF), 1.01*this.width/sF, 1.01*this.height/sF);
-      };
-      img.src = images.portramp;*/
     }
   }
   //rolls
@@ -171,15 +186,18 @@ function drawMap(coords, vertToVert, ctx, scale) {
 
       let img = new Image();
       img.src = '/img/roll' + roll + '.svg';
+      let w = img.width;
+      let h = img.height;
       let apothem = vertToVert/2 * Math.sin(Math.PI/3);
-      let sF = 1.5*520/(apothem*scale);
-      toDraw.push({img: img, x:  x - 1.5*400/(2*sF), y: y - 0.2*240/(2*sF), w: 1.5*400/sF, h: 1.5*240/sF});
+      let sF = 1.25*w/(apothem*scale);
+      toDraw.push({img: img, x:  x - w/(2*sF), y: y - 0.2*h/(2*sF), w: w/sF, h: h/sF});
       img.onload = function() {
         loaded++;
         afterLoad(toDraw, loaded);
       }
     }
   }
+  console.log(toDraw);
 }
 
 function getClosest(coords, type, x, y) {
@@ -250,9 +268,8 @@ function main(map) {
 
   let coords = getCoords(map, whva.vtv, whva.apoth);
   console.log(coords);
-  drawMap(coords, whva.vtv, ctx, scale);
+  drawMap(coords, whva.vtv, whva.apoth, ctx, scale);
 }
-
 
 let socket = io();
 
