@@ -40,43 +40,8 @@ function genMap(map, terrain, ports, rolls) {
   map = map.split(',');
   terrain = terrain.split(',');
   ports = ports.split('');
-  let baseRolls = rolls.split(',');
 
-  let rollData = [];
-  rolls = [];
-  for (let row = 0; row < map.length; row++) {
-    rollData.push({});
-    let offset = 0;
-    for (let col = 0; col < map[row].length; col++) {
-      if (map[row][col] == '_') {
-        offset += 0.5;
-      }else if (map[row][col] == '-' || map[row][col] == 'w') {
-        offset++;
-      }else {
-        offset++;
-        let currLen = Object.keys(rollData[row]).length;
-        while (Object.keys(rollData[row]).length == currLen) {
-          let roll = baseRolls[Math.floor(Math.random() * baseRolls.length)];
-          if (roll == '6' || roll == '8') {
-            if (rollData[row][offset-1] != '6' && rollData[row][offset-1] != '8') {
-              let above = [];
-              for (let i = offset-0.5; i < offset+1; i += 0.5) {
-                above.push(rollData[row-1][i]);
-              }
-              if (!above.includes('6') && !above.includes('8')) {
-                rollData[row][offset] = roll;
-                rolls.push(roll);
-              }
-            }
-          }else {
-            rollData[row][offset] = roll;
-            rolls.push(roll);
-          }
-        }
-      }
-    }
-  }
-
+  //assigning terrains and ports with plank positions
   let wInFirstRow = 0;
   for (let i = 0; i < map[0].length; i++) {
     if (map[0][i] == 'w') {
@@ -85,7 +50,6 @@ function genMap(map, terrain, ports, rolls) {
   }
   let lastPort = '';
   let topRight = false;
-  let rollCount = 0;
   for (let row = 0; row < map.length; row++) {
     map[row] = map[row].split('');
     let wInRow = 0;
@@ -97,10 +61,6 @@ function genMap(map, terrain, ports, rolls) {
         let terrainIndex = Math.floor(Math.random() * terrain.length);
         map[row][col] = {terrain: terrain[terrainIndex]};
         terrain.splice(terrainIndex, 1);
-        if (map[row][col].terrain != 'd') {
-          map[row][col].roll = rolls[rollCount];
-          rollCount++;
-        }
       }else {
         if (map[row][col] == 'w') {
           if (ports.length == 0) {
@@ -175,5 +135,73 @@ function genMap(map, terrain, ports, rolls) {
       }
     }
   }
+
+  //assigning rolls
+  let guarRolls = rolls.split(',');
+  let safeRolls = rolls.replace(/6,/g, '').replace(/8,/g, '').split(',');
+  let not68 = [];
+  for (let row = 0; row < map.length; row++) {
+    let offset = 0;
+    let passes = 0;
+    not68.push([]);
+    if (row < map.length-2) {
+      not68.push([]);
+    }
+    for (let col = 0; col < map[row].length; col++) {
+      if (map[row][col].terrain == '_') {
+        offset += 0.5;
+      }else if (['-', 'x', 'p', 'd'].includes(map[row][col].terrain[0])) {
+        offset++;
+      }else {
+        offset++;
+        while (true) {
+          if (guarRolls.length == 0) {
+            guarRolls = rolls.split(',');
+          }
+          if (passes < 3) {
+            var index = Math.floor(Math.random() * guarRolls.length);
+            var roll = guarRolls[index];
+          }else {
+            if (safeRolls.length == 0) {
+              safeRolls = rolls.replace(/6,/g, '').replace(/8,/g, '').split(',');
+            }
+            var roll = safeRolls[Math.floor(Math.random() * safeRolls.length)];
+          }
+          if (roll == '6' || roll == '8') {
+            if (!not68[row].includes(offset)) {
+              map[row][col].roll = roll;
+              not68[row].push(offset+1);
+              if (not68[row+1]) {
+                not68[row+1].push(offset-0.5, offset+0.5);
+              }
+              if (index != undefined && passes < 3) {
+                if (guarRolls.length == 1) {
+                  guarRolls = [];
+                }else {
+                  guarRolls.splice(index, 1);
+                }
+              }
+              passes = 0;
+              break;
+            }else {
+              passes++;
+            }
+          }else {
+            map[row][col].roll = roll;
+            if (index != undefined && passes < 3) {
+              if (guarRolls.length == 1) {
+                guarRolls = [];
+              }else {
+                guarRolls.splice(index, 1);
+              }
+            }
+            passes = 0;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   return map;
 }
