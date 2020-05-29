@@ -1285,3 +1285,12 @@ function offset(x) {
     map[row][col].roll = rollOrder[rollCount];
     rollCount++;
   }
+
+  socket.on('disconnect', () => {
+    console.log('disconnected from server');
+  });
+
+  socket.on('connect', () => {
+    console.log('connected to server');
+  });
+  

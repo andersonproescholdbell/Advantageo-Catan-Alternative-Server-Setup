@@ -269,18 +269,14 @@ function main(map) {
   let coords = getCoords(map, whva.vtv, whva.apoth);
   console.log(coords);
   drawMap(coords, whva.vtv, whva.apoth, ctx, scale);
+
+  let a = document.getElementById('passBtn')//.addEventListener('click', function() {socket.emit('pass_turn');})​;
+  a.onclick = function() {socket.emit('pass_turn')};
 }
 
 let socket = io();
-
-socket.on('connect', () => {
-  console.log('connected to server');
-});
 
 socket.on('map', (map) => {
   main(map);
 });
 
-socket.on('disconnect', () => {
-  console.log('disconnected from server');
-});

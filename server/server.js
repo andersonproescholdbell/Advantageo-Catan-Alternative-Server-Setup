@@ -16,30 +16,10 @@ server.listen(port, () => {
   main();
 });
 
-function main() {
-  //let map = '_-wwww,-wlllw,_wllllw,wlllllw,_wllllw,-wlllw,_-wwww';
-  let map = '--wwwww,_-wllllw,-wlllllw,_wllllllw,wllllllw,_wlllllw,-wllllw,_-wwwww';
-  //let map = '--wwww,_-wlllw,-wllllw,_wlllllw,wllllllw,_wlllllw,-wllllw,_-wlllw,--wllw';
-  let terrain = 'f,f,f,f,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d';
-  let ports = 'fsobw3333';
-  let baseRolls = '2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12';
-  map = genMap(map, terrain, ports, baseRolls);
-
-  io.on('connection', (socket) => {
-    console.log(socket.id + ' connected.');
-
-    socket.emit('map', map);
-  
-    socket.on('disconnect', () => {
-      console.log(socket.id + ' disconnected.');
-    });
-  });
-}
-
 function genMap(map, terrain, ports, rolls) {
   map = map.split(',');
-  terrain = terrain.split(',');
-  ports = ports.split('');
+  let baseTerrain = terrain.split(',');
+  let basePorts = ports.split('');
 
   //assigning terrains and ports with plank positions
   let wInFirstRow = 0;
@@ -55,23 +35,23 @@ function genMap(map, terrain, ports, rolls) {
     let wInRow = 0;
     for (let col = 0; col < map[row].length; col++) {
       if (map[row][col] != '_' && map[row][col] != '-' && map[row][col] != 'w') {
-        if (terrain.length == 0) {
-          terrain = 'f,f,f,f,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d'.split(',');
+        if (baseTerrain.length == 0) {
+          baseTerrain = terrain.split(',');
         }
-        let terrainIndex = Math.floor(Math.random() * terrain.length);
-        map[row][col] = {terrain: terrain[terrainIndex]};
-        terrain.splice(terrainIndex, 1);
+        let terrainIndex = Math.floor(Math.random() * baseTerrain.length);
+        map[row][col] = {terrain: baseTerrain[terrainIndex]};
+        baseTerrain.splice(terrainIndex, 1);
       }else {
         if (map[row][col] == 'w') {
-          if (ports.length == 0) {
-            ports = 'fsobw3333'.split('');
+          if (basePorts.length == 0) {
+            basePorts = ports.split('');
           }
-          let portIndex = Math.floor(Math.random() * ports.length);
+          let portIndex = Math.floor(Math.random() * basePorts.length);
           map[row][col] = {terrain: 'x'};
           if (row == 0) {
             if (wInRow%2 == 0) {
-              map[row][col] = {terrain: 'p'+ports[portIndex]};
-              ports.splice(portIndex, 1);
+              map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+              basePorts.splice(portIndex, 1);
               if (col < map[row].length-1) {
                 map[row][col].plankLoc = 'br';
               }else {
@@ -81,8 +61,8 @@ function genMap(map, terrain, ports, rolls) {
           }else if (row == map.length-1) {
             if (lastPort == 'r') {
               if (wInRow%2 == 0) {
-                map[row][col] = {terrain: 'p'+ports[portIndex]};
-                ports.splice(portIndex, 1);
+                map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+                basePorts.splice(portIndex, 1);
                 if (wInRow == 0) {
                   map[row][col].plankLoc = 'tr';
                 }else {
@@ -91,8 +71,8 @@ function genMap(map, terrain, ports, rolls) {
               }
             }else {
               if (wInRow%2 == 1) {
-                map[row][col] = {terrain: 'p'+ports[portIndex]};
-                ports.splice(portIndex, 1);
+                map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+                basePorts.splice(portIndex, 1);
                 map[row][col].plankLoc = 'tl';
               }
             }
@@ -100,29 +80,29 @@ function genMap(map, terrain, ports, rolls) {
             if (wInRow == 1 && row%2 == 1) {
               if (row == 1) {
                 if (wInFirstRow%2 == 0) {
-                  map[row][col] = {terrain: 'p'+ports[portIndex]};
-                  ports.splice(portIndex, 1);
+                  map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+                  basePorts.splice(portIndex, 1);
                   lastPort = 'r';
                   topRight = true;
                   map[row][col].plankLoc = 'l';
                 }
               }else {
-                map[row][col] = {terrain: 'p'+ports[portIndex]};
-                ports.splice(portIndex, 1);
+                map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+                basePorts.splice(portIndex, 1);
                 lastPort = 'r';
                 map[row][col].plankLoc = 'l';
               }
             }else if (wInRow == 0) {
               if (row == map.length-2) {
                 if (topRight && row%2 == 0) {
-                  map[row][col] = {terrain: 'p'+ports[portIndex]};
-                  ports.splice(portIndex, 1);
+                  map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+                  basePorts.splice(portIndex, 1);
                   lastPort = 'l';
                   map[row][col].plankLoc = 'r';
                 }
               }else if (row%2 == 0) {
-                map[row][col] = {terrain: 'p'+ports[portIndex]};
-                ports.splice(portIndex, 1);
+                map[row][col] = {terrain: 'p'+basePorts[portIndex]};
+                basePorts.splice(portIndex, 1);
                 lastPort = 'l';
                 map[row][col].plankLoc = 'r';
               }
@@ -202,6 +182,68 @@ function genMap(map, terrain, ports, rolls) {
       }
     }
   }
-
   return map;
+}
+
+let players = [];
+let current_turn = 0;
+let timeOut;
+let turn = 0;
+let wait = 3000;
+
+function next_turn(){
+  turn = current_turn++ % players.length;
+  players[turn].emit('your_turn');
+  console.log("next turn triggered " , turn);
+  triggerTimeout();
+}
+
+function triggerTimeout() {
+  timeOut = setTimeout( () => {
+    next_turn();
+  }, wait);
+}
+
+function resetTimeOut() {
+  if (typeof timeOut === 'object') {
+    console.log("timeout reset");
+    clearTimeout(timeOut);
+  }
+}
+
+function main() {
+  let maps = ['_-wwww,-wlllw,_wllllw,wlllllw,_wllllw,-wlllw,_-wwww',
+              '--wwwww,_-wllllw,-wlllllw,_wllllllw,wllllllw,_wlllllw,-wllllw,_-wwwww',
+              '--wwww,_-wlllw,-wllllw,_wlllllw,wllllllw,_wlllllw,-wllllw,_-wlllw,--wllw'];
+  let terrain = 'f,f,f,f,s,s,s,s,w,w,w,w,o,o,o,b,b,b,d';
+  let ports = 'fsobw3333';
+  let rolls = '2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12';
+  let map = genMap(maps[1], terrain, ports, rolls);
+
+  io.on('connection', (socket) => {
+    players.push(socket);
+    console.log(players.length);
+    console.log('turn: ', turn)
+
+    socket.on('pass_turn', function() {
+      console.log(turn);
+      if (players[turn] == socket) {
+        console.log('yes')
+        resetTimeOut();
+        next_turn();
+      }
+      console.log('turn');
+    });
+
+    socket.emit('map', map);
+  
+    socket.on('disconnect', () => {
+      if (players.length > 1) {
+        players.splice(players.indexOf(socket),1);
+      }else {
+        players = [];
+      }
+      turn--;
+    });
+  });
 }
